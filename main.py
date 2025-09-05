@@ -1,8 +1,20 @@
 import pygame
 import random
 import time
+import os
 #from pygame import *
 from Sprite import *
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
+zombie_sheet_path = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
+def load_image(path, scale=None):
+    image = pygame.image.load(path).convert_alpha()
+    if scale:
+        image = pygame.transform.scale(image, scale)
+    return image
+
+
 
 
 def get_sprite(sheet,x,y,width,height):
@@ -26,7 +38,7 @@ class Game:
         # Start game
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption(self.TITLE)
-        a, b = from_multiline_sheet(load_sheets(["D:/new-whack-a-zombie/GProgASM1/Assets/Zombie sprites/Zombie 1 (32x32).png"])[0],32,32,[8,7,8,13,9,8])
+        a, b = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
         self.anim_data = AnimData(a, b)
         self.debugger = Debugger("debug")
         self.audio = Audio()
@@ -41,10 +53,10 @@ class Game:
         anim_change_time = time.time()
         sprite = AnimatedSprite(self.anim_data, current_anim=0, anim_fps=8, x=100, y=100)
         # Load background
-        background = pygame.image.load("D:/new-whack-a-zombie/GProgASM1/Assets/Background/background.png")
-        self.background = pygame.transform.scale(background, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background.png"), 
+                        (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         # Load graves
-        grave_image = pygame.image.load("D:/new-whack-a-zombie/GProgASM1/Assets/Background/Decoration/graveyards.png").convert_alpha()
+        grave_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "graveyards.png"))
         self.grave = pygame.transform.scale(get_sprite(grave_image, 0, 0, 32, 32), (96, 96))
         self.grave2 = self.grave.copy()
         self.grave3 = self.grave.copy()
@@ -52,18 +64,19 @@ class Game:
         self.grave5 = self.grave.copy()
         self.grave6 = self.grave.copy()
 
-        broken_window_image = pygame.image.load("D:/new-whack-a-zombie/GProgASM1/Assets/Background/Decoration/Dungeon_01.png").convert_alpha()
-        self.broken_window_image = pygame.transform.scale(broken_window_image, (100, 100))
-        self.broken_window_image2 = self.broken_window_image.copy()
-        
-        door_image = pygame.image.load("D:/new-whack-a-zombie/GProgASM1/Assets/Background/Decoration/Dungeon_09.png").convert_alpha()
-        self.door = pygame.transform.scale(door_image, (150, 150))
+        broken_window_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "Dungeon_01.png"), (100, 100))
+        self.broken_window_image = broken_window_image
+        self.broken_window_image2 = broken_window_image.copy()
+
+        # Door
+        door_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "Dungeon_09.png"), (150, 150))
+        self.door = door_image
         # Hide the mouse cursor
         pygame.mouse.set_visible(False)
         
         # Load custom cursor
-        cursor_image = pygame.image.load("D:/new-whack-a-zombie/GProgASM1/Assets/UI/cursor.png").convert_alpha()
-        self.cursor = pygame.transform.scale(cursor_image, (100, 100))
+        cursor_image = load_image(os.path.join(ASSETS_DIR, "UI", "cursor.png"), (100, 100))
+        self.cursor = cursor_image
         running = True
         while running:
             dt = clock.tick(60) / 1000.0  # delta time in seconds
@@ -112,7 +125,7 @@ class Audio:
     def __init__(self):
         try:
             pygame.mixer.init()
-            pygame.mixer.music.load("D:/new-whack-a-zombie/GProgASM1/sounds/[01] Eternal Night Vignette ~ Eastern Night.flac")
+            pygame.mixer.music.load(os.path.join(BASE_DIR, "sounds", "[01] Eternal Night Vignette ~ Eastern Night.flac"))
             pygame.mixer.music.play(-1)
         except Exception as e:
             print("Error loading audio: " + str(e))
