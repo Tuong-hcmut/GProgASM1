@@ -170,8 +170,8 @@ def main_menu():
 class Game:
     # Probably move this to a settings.ini file later
     # Maybe make a UI class
-    WINDOW_WIDTH = 800
-    WINDOW_HEIGHT = 451
+    WINDOW_WIDTH = 1200
+    WINDOW_HEIGHT = 800
     FPS = 60
     FONT_SIZE = 25
     MARGINS = 30
@@ -188,7 +188,7 @@ class Game:
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption(self.TITLE)
         a, b = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
-        self.zombie_zombie_anim_data = AnimData(a, b)
+        self.zombie_anim_data = AnimData(a, b)
         self.debugger = Debugger("debug")
         self.audio = Audio()
     def start(self):
@@ -258,8 +258,8 @@ class Game:
             # Update sprite animation
             
            # Update sprite animation
-            zombie_zombie_sprite.UpdateAnim(dt)
-            zombie_zombie_sprite.draw(self.window)
+            zombie_sprite.UpdateAnim(dt)
+            zombie_sprite.draw(self.window)
             pygame.display.flip()
     def update(self):
         # Updates game logic
