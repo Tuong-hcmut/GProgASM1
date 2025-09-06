@@ -222,11 +222,6 @@ class Game:
         self.zombie_anim_data = AnimData(zombie_images, zombie_frame_info)
         self.debugger = Debugger("debug")
         self.audio = Audio()
-<<<<<<< HEAD
-
-=======
-        self.debugger.log("init done")
->>>>>>> ce31c5f98439ac6b3725fdd8cec949a33cecb14f
     def start(self):
         # Initialize in-game variables
         self.score = 0
