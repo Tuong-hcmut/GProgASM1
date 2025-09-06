@@ -16,9 +16,6 @@ def load_image(path, scale=None):
         image = pygame.transform.scale(image, scale)
     return image
 
-
-
-
 def get_sprite(sheet,x,y,width,height):
         rect = pygame.Rect(x, y, width, height)
         sprite = sheet.subsurface(rect).copy()
@@ -222,11 +219,6 @@ class Game:
         self.zombie_anim_data = AnimData(zombie_images, zombie_frame_info)
         self.debugger = Debugger("debug")
         self.audio = Audio()
-<<<<<<< HEAD
-
-=======
-        self.debugger.log("init done")
->>>>>>> ce31c5f98439ac6b3725fdd8cec949a33cecb14f
     def start(self):
         # Initialize in-game variables
         self.score = 0
@@ -276,6 +268,16 @@ class Game:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     running = False
                     return "menu"
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if zombie_sprite.is_hit(mouse_pos):
+                        self.hits += 1
+                        self.score += 10
+                        zombie_sprite.ChangeAnim(1)  # ví dụ anim 1 = bị hit
+                        print("Hit!")
+                    else:
+                        self.misses += 1
+                        print("Miss!")
                 self.handle_volume_event(event)
             self.update()
             self.draw()
@@ -307,18 +309,6 @@ class Game:
         x, y = random.choice(self.spawn_points)
         z = Zombie(self.zombie_anim_data, x, y, anim_fps=8)
         self.zombies.append(z)
-    
-    def handle_click(self, pos):
-        hit_any = False
-        for z in self.zombies:
-            if z.visible and z.is_hit(pos):
-                self.hits += 1
-                self.score += 1
-                z.visible = False
-                hit_any = True
-                break
-        if not hit_any:
-            self.misses += 1
 
     def handle_volume_event(self, event):
         #self.debugger.log("enter handle_volume_event")
