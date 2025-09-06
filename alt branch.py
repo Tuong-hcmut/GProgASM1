@@ -1,26 +1,117 @@
+import pygame
+import random
+import sys
+import os
+from Sprite import *  # Use Sprite, AnimatedSprite, AnimData, from_multiline_sheet
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
+zombie_sheet_path = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
+volume_bar_sheet_path = os.path.join(ASSETS_DIR, "UI", "Charging bars and buttons", "Volume bars.png")
+
+# ===== Debugger =====
+class Debugger:
+    def __init__(self, mode_arg):
+        self.mode = mode_arg
+    def log(self, message):
+        if self.mode == "debug":
+            print("Debugger log: " + str(message))
+
+# ===== Audio =====
+class Audio:
+    def __init__(self):
+        try:
+            pygame.mixer.init()
+            pygame.mixer.music.load(os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3"))
+            pygame.mixer.music.play(-1)
+        except Exception as e:
+            print("Error loading audio: " + str(e))
+
+
+# ===== Sprite subclasses =====
+class Grave(Sprite):
+    def __init__(self, x, y, target_height=80, base_res=(800, 600), curr_res=(800,600)):
+        full_image = pygame.image.load(
+            os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png")
+        ).convert_alpha()
+        
+        # Cut the upper half (RIP gravestone)
+        width = full_image.get_width()
+        height = full_image.get_height() // 2   # divide in half
+        image = full_image.subsurface((0, 0, width, height)).copy()
+
+        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
+
+class Cursor(Sprite):
+    def __init__(self, x=0, y=0, target_height=100, base_res=(800,600), curr_res=(800,600)):
+        image = pygame.image.load(os.path.join(ASSETS_DIR, "UI", "cursor.png")).convert_alpha()
+        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
+
+    def draw_centered(self, surface):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        rect = self.image.get_rect(center=(mouse_x, mouse_y))
+        surface.blit(self.image, rect.topleft)
+
+class Button(Sprite):
+    def __init__(self, image_path, x, y, target_height=60, base_res=(800,600), curr_res=(800,600)):
+        image = pygame.image.load(image_path).convert_alpha()
+        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
+
+    def is_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return True
+        return False
+
+class Zombie(AnimatedSprite):
+    def __init__(self, anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(3200,1792), current_resolution=(3200,1792)):
+        lifetime_ms = random.randint(800, 1500)  # thời gian sống random
+        super().__init__(anim_data=anim_data, anim_fps=anim_fps, x=x, y=y, target_height=target_height, base_resolution=base_resolution, current_resolution=current_resolution)
+        self.lifetime_ms=lifetime_ms
+        self.spawn_time = pygame.time.get_ticks()
+
+    def update(self, dt):
+        self.UpdateAnim(dt)
+        # check lifetime
+        if self.lifetime_ms is not None:
+            age = pygame.time.get_ticks() - self.spawn_time
+            if age >= self.lifetime_ms:
+                self.visible = False
+
+    def is_alive(self):
+        return self.visible
+
+    
 # ===== Game =====
 class Game:
-    WINDOW_WIDTH = 800
-    WINDOW_HEIGHT = 600
+    # Probably move this to a settings.ini file later
+    # Maybe make a UI class
+    BASE_WIDTH = 3200
+    BASE_HEIGHT = 1792
+    WINDOW_WIDTH = 1200
+    WINDOW_HEIGHT = 800
     FPS = 60
+    FONT_SIZE = 25
+    MARGINS = 30
+    TITLE = "Major Skill Issue - Group 9"
     def __init__(self):
+        # Initialize persistent variables
         self.highscore = 0
         self.volume = 0.5
         pygame.mixer.music.set_volume(self.volume)
-        if self.WINDOW_WIDTH == 1280 and self.WINDOW_HEIGHT == 720:
-            self.volume_bar = pygame.Rect(1000,60, 200, 20)
-        elif self.WINDOW_WIDTH == 800 and self.WINDOW_HEIGHT == 600:
-            self.volume_bar = pygame.Rect(600,50, 150, 15)
-        self.dragging_volume = False
 
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-        pygame.display.set_caption("Whack-a-zombie")
+        pygame.display.set_caption(self.TITLE)
 
+        volume_bar_images, volume_bar_frame_info = from_concat_sheet(load_sheets([volume_bar_sheet_path])[0],48, 32,[1,1,1,1,1,1,1,1])
+        volume_bar_anim_data = AnimData(volume_bar_images, volume_bar_frame_info)
+        self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        #self.volume_bar = pygame.Rect(1000,60, 200, 20)
+        self.dragging_volume = False
         # Load zombie animation
-        sheets = load_sheets([zombie_sheet_path])
-        a, b = from_multiline_sheet(sheets[0], 32, 32, [8,7,8,13,9,8])
-        self.zombie_anim_data = AnimData(a, b)
 
+        zombie_images, zombie_frame_info = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
+        self.zombie_anim_data = AnimData(zombie_images, zombie_frame_info)
         self.debugger = Debugger("debug")
         self.audio = Audio()
 
@@ -58,14 +149,15 @@ class Game:
                         curr_res=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
                 )
 
-
     # ===== Volume bar =====
     def handle_volume_event(self, event):
+        #self.debugger.log("enter handle_volume_event")
         knob_radius = 8
-        fill_width = int(self.volume * self.volume_bar.width)
+        fill_width = int(self.volume * self.volume_bar.image.get_width())
         knob_x = self.volume_bar.x + fill_width
         knob_y = self.volume_bar.y + self.volume_bar.height // 2   # consistent with draw_volume_bar
 
+        # Tạo rect bao quanh knob để click dễ hơn
         knob_rect = pygame.Rect(knob_x - knob_radius, knob_y - knob_radius,
                                 knob_radius * 2, knob_radius * 2)
 
@@ -83,17 +175,44 @@ class Game:
 
     def update_volume(self, mouse_x):
         relative_x = mouse_x - self.volume_bar.x
-        self.volume = max(0, min(1, relative_x / self.volume_bar.width))
+        self.volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
+    def update_volume(self, mouse_x):
+        relative_x = mouse_x - self.volume_bar.x
+        self.volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
         pygame.mixer.music.set_volume(self.volume)
 
-    """def draw_volume_bar(self):
-        pygame.draw.rect(self.window, (200,200,200), self.volume_bar, 2)
-        fill_width = int(self.volume * self.volume_bar.width)
-        pygame.draw.rect(self.window, (0,200,0), (self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.height))
-        knob_x = self.volume_bar.x + fill_width
-        knob_y = self.volume_bar.y + self.volume_bar.height // 2
-        knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.width))
-        pygame.draw.circle(self.window, (255,0,0), (knob_x, knob_y), 10)"""
+    def draw_volume_bar(self):
+        # Draw volume bar
+        #pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
+        
+        # fill parts
+        #fill_width = int(self.volume * self.volume_bar.image.get_width())
+        #fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
+        #pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
+
+        # Drag knob
+        #knob_x = self.volume_bar.x + fill_width
+        #knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
+        
+        self.volume_bar.ChangeAnim(7- int(self.volume * 7))
+        self.volume_bar.draw(self.window)
+        # The max/min to keep knob within bar
+        #knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
+        #pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # ===== Main menu =====
     def main_menu(self):
@@ -175,20 +294,29 @@ class Game:
 
     # ===== Game start =====
     def start(self):
+        # Initialize in-game variables
         self.score = 0
+        self.hits = 0
+        self.misses = 0
+        self.time = 0
+
         anim_index = 0
         anim_change_time = 0.0
 
-        zombie_sprite = AnimatedSprite(self.zombie_anim_data, anim_fps=8, x=200, y=400,
-                                       target_height=50, base_resolution=(800,451),
-                                       current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        zombie_sprite = Zombie(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        
 
+
+
+
+# Load background
         self.background = pygame.image.load(os.path.join(ASSETS_DIR,"Background","background_new.png")).convert_alpha()
         self.background = pygame.transform.scale(self.background, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
 
         running = True
+        self.debugger.log("pre-loop done")
         while running:
-            dt = clock.tick(self.FPS)/1000.0
+            dt = clock.tick(self.FPS)/1000.0 # delta time in seconds
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -197,10 +325,11 @@ class Game:
                     return "menu"
                 self.handle_volume_event(event)
 
-            # Update zombie animation
+            # Switch zombie animation every 5 seconds
             anim_change_time += dt
             if anim_change_time >= 5.0:
-                anim_index = (anim_index +1) % len(self.zombie_anim_data.frame_info)
+
+                anim_index = (anim_index + 1) % len(self.zombie_anim_data.frame_info)
                 zombie_sprite.ChangeAnim(anim_index)
                 anim_change_time = 0.0
             zombie_sprite.UpdateAnim(dt)
@@ -215,3 +344,21 @@ class Game:
 
 
             pygame.display.flip()
+
+
+# ===== Main loop =====
+pygame.init()
+clock = pygame.time.Clock()
+game_instance = Game()
+try:
+    while True:
+        choice = game_instance.main_menu()
+        if choice == "start":
+            result = game_instance.start()
+            if result == "menu":
+                continue
+        else:
+            break
+finally:
+    pygame.quit()
+    sys.exit()

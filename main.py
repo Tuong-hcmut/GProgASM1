@@ -8,14 +8,25 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 zombie_sheet_path = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
 volume_bar_sheet_path = os.path.join(ASSETS_DIR, "UI", "Charging bars and buttons", "Volume bars.png")
-def load_image(path, scale=None):
-    image = pygame.image.load(path).convert_alpha()
-    if scale:
-        image = pygame.transform.scale(image, scale)
-    return image
 
-pygame.init()
-clock = pygame.time.Clock()
+# ===== Debugger =====
+class Debugger:
+    def __init__(self, mode_arg):
+        self.mode = mode_arg
+    def log(self, message):
+        if self.mode == "debug":
+            print("Debugger log: " + str(message))
+
+# ===== Audio =====
+class Audio:
+    def __init__(self):
+        try:
+            pygame.mixer.init()
+            pygame.mixer.music.load(os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3"))
+            pygame.mixer.music.play(-1)
+        except Exception as e:
+            print("Error loading audio: " + str(e))
+
 
 # ===== Sprite subclasses =====
 class Grave(Sprite):
@@ -70,6 +81,16 @@ class Zombie(AnimatedSprite):
     def is_alive(self):
         return self.visible
 
+def load_image(path, scale=None):
+    image = pygame.image.load(path).convert_alpha()
+    if scale:
+        image = pygame.transform.scale(image, scale)
+    return image
+
+def get_sprite(sheet,x,y,width,height):
+        rect = pygame.Rect(x, y, width, height)
+        sprite = sheet.subsurface(rect).copy()
+        return sprite
 def load_buttons(path):
     sheet = pygame.image.load(path).convert_alpha()
     print("[DEBUG] Sheet size:", sheet.get_width(), sheet.get_height())
@@ -199,6 +220,12 @@ def main_menu():
         pygame.display.flip()
         clock.tick(60)
 
+
+
+
+
+    
+# ===== Game =====
 class Game:
     # Probably move this to a settings.ini file later
     # Maybe make a UI class
@@ -234,110 +261,21 @@ class Game:
         self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         #self.volume_bar = pygame.Rect(1000,60, 200, 20)
         self.dragging_volume = False
+        # Load zombie animation
 
         zombie_images, zombie_frame_info = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
         self.zombie_anim_data = AnimData(zombie_images, zombie_frame_info)
         self.debugger = Debugger("debug")
         self.audio = Audio()
-    def start(self):
-        # Initialize in-game variables
-        self.score = 0
-        self.hits = 0
-        self.misses = 0
-        self.time = 0
 
-        anim_index = 0
-        anim_change_time = 0.0
 
-        zombie_sprite = Zombie(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-        # Load background
-        self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background_new.png"), 
-                        (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-        # Load graves
-        grave_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png"))
-        self.grave = pygame.transform.scale(get_sprite(grave_image, 0, 0, 32, 32), (80, 80))
-        self.grave2 = self.grave.copy()
-        self.grave3 = self.grave.copy()
-        self.grave4 = self.grave.copy()
-        self.grave5 = self.grave.copy()
-        self.grave6 = self.grave.copy()
-        self.grave7 = self.grave.copy()
-        self.grave8 = self.grave.copy()
-        self.grave9 = self.grave.copy()
-
-        # broken_window_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "Dungeon_01.png"), (100, 100))
-        # self.broken_window_image = broken_window_image
-        # self.broken_window_image2 = broken_window_image.copy()
-
-        # Door
-        # door_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "Dungeon_09.png"), (150, 150))
-        # self.door = door_image
-        # Hide the mouse cursor
-        pygame.mouse.set_visible(False)
-        
-        # Load custom cursor
-        cursor_image = load_image(os.path.join(ASSETS_DIR, "UI", "cursor.png"), (100, 100))
-        self.cursor = cursor_image
-        running = True
-        self.debugger.log("pre-loop done")
-        while running:
-            dt = clock.tick(60) / 1000.0  # delta time in seconds
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False 
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    running = False
-                    return "menu"
-                self.handle_volume_event(event)
-            self.update()
-            self.draw()
-            self.draw_volume_bar()
-            
-
-            
-            # Switch animation every 5 seconds
-            anim_change_time += dt
-
-            if anim_change_time >= 5.0:
-
-                anim_index = (anim_index + 1) % len(self.zombie_anim_data.frame_info)
-                zombie_sprite.ChangeAnim(anim_index)
-
-                anim_change_time = 0.0
-            # Update sprite animation
-            
-           # Update sprite animation
-            zombie_sprite.UpdateAnim(dt)
-            zombie_sprite.draw(self.window)
-            pygame.display.flip()
-    def update(self):
-        # Updates game logic
-        if self.score > self.highscore:
-            self.highscore = self.score
-
-    def spawn_zombie(self):
-        x, y = random.choice(self.spawn_points)
-        z = Zombie(self.zombie_anim_data, x, y, anim_fps=8)
-        self.zombies.append(z)
-    
-    def handle_click(self, pos):
-        hit_any = False
-        for z in self.zombies:
-            if z.visible and z.is_hit(pos):
-                self.hits += 1
-                self.score += 1
-                z.visible = False
-                hit_any = True
-                break
-        if not hit_any:
-            self.misses += 1
-
+    # ===== Volume bar =====
     def handle_volume_event(self, event):
         #self.debugger.log("enter handle_volume_event")
         knob_radius = 8
         fill_width = int(self.volume * self.volume_bar.image.get_width())
         knob_x = self.volume_bar.x + fill_width
-        knob_y = 64
+        knob_y = self.volume_bar.y + self.volume_bar.height // 2   # consistent with draw_volume_bar
 
         # Tạo rect bao quanh knob để click dễ hơn
         knob_rect = pygame.Rect(knob_x - knob_radius, knob_y - knob_radius,
@@ -368,15 +306,130 @@ class Game:
         #self.debugger.log("exit handle_volume_event")
 
 
-    def update_volume(self, mouse_x, mouse_y=None):
-        self.debugger.log("enter update_volume")
-        # Tính volume theo vị trí chuột (chỉ cần trục X)
+    def update_volume(self, mouse_x):
         relative_x = mouse_x - self.volume_bar.x
-        new_volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
+        self.volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
+    def update_volume(self, mouse_x):
+        relative_x = mouse_x - self.volume_bar.x
+        self.volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
+        pygame.mixer.music.set_volume(self.volume)
 
-        self.volume = new_volume  # lưu lại volume hiện tại
-        pygame.mixer.music.set_volume(self.volume)  # chỉ nhận 1 tham số
-        self.debugger.log("exit update_volume")
+    def draw_volume_bar(self):
+        # Draw volume bar
+        #pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
+        
+        # fill parts
+        #fill_width = int(self.volume * self.volume_bar.image.get_width())
+        #fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
+        #pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
+
+        # Drag knob
+        #knob_x = self.volume_bar.x + fill_width
+        #knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
+        
+        self.volume_bar.ChangeAnim(7- int(self.volume * 7))
+        self.volume_bar.draw(self.window)
+        # The max/min to keep knob within bar
+        #knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
+        #pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
+    def start(self):
+        # Initialize in-game variables
+        self.score = 0
+        self.hits = 0
+        self.misses = 0
+        self.time = 0
+
+        anim_index = 0
+        anim_change_time = 0.0
+
+        zombie_sprite = Zombie(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        
+
+
+
+
+# Load background
+        self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background_new.png"), 
+                        (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        # Load graves
+        grave_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png"))
+        self.grave = pygame.transform.scale(get_sprite(grave_image, 0, 0, 32, 32), (80, 80))
+        self.grave2 = self.grave.copy()
+        self.grave3 = self.grave.copy()
+        self.grave4 = self.grave.copy()
+        self.grave5 = self.grave.copy()
+        self.grave6 = self.grave.copy()
+        self.grave7 = self.grave.copy()
+        self.grave8 = self.grave.copy()
+        self.grave9 = self.grave.copy()
+
+        # broken_window_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "Dungeon_01.png"), (100, 100))
+        # self.broken_window_image = broken_window_image
+        # self.broken_window_image2 = broken_window_image.copy()
+
+        # Door
+        # door_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "Dungeon_09.png"), (150, 150))
+        # self.door = door_image
+        # Hide the mouse cursor
+        pygame.mouse.set_visible(False)
+        
+        # Load custom cursor
+        cursor_image = load_image(os.path.join(ASSETS_DIR, "UI", "cursor.png"), (100, 100))
+        self.cursor = cursor_image
+        running = True
+        self.debugger.log("pre-loop done")
+        while running:
+            dt = clock.tick(self.FPS)/1000.0 # delta time in seconds
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
+                    return "menu"
+                self.handle_volume_event(event)
+            self.update()
+            self.draw()
+            
+
+            # Switch zombie animation every 5 seconds
+            anim_change_time += dt
+            if anim_change_time >= 5.0:
+
+                anim_index = (anim_index + 1) % len(self.zombie_anim_data.frame_info)
+                zombie_sprite.ChangeAnim(anim_index)
+                anim_change_time = 0.0
+            zombie_sprite.UpdateAnim(dt)
+            zombie_sprite.draw(self.window)
+            self.draw_volume_bar()
+            self.cursor.draw_centered(self.window)
+            pygame.display.flip()
+
+    def update(self):
+        # Updates game logic
+        if self.score > self.highscore:
+            self.highscore = self.score
+
+    def spawn_zombie(self):
+        x, y = random.choice(self.spawn_points)
+        z = Zombie(self.zombie_anim_data, x, y, anim_fps=8)
+        self.zombies.append(z)
+    
+    def handle_click(self, pos):
+        hit_any = False
+        for z in self.zombies:
+            if z.visible and z.is_hit(pos):
+                self.hits += 1
+                self.score += 1
+                z.visible = False
+                hit_any = True
+                break
+        if not hit_any:
+            self.misses += 1
+
+    
+
+
+    
 
 
     # def draw_grid(self, grid_size=64, color=(50, 50, 50)):
@@ -445,44 +498,11 @@ class Game:
         hud_surface = font.render(hud_text, True, (255, 255, 255))
         self.window.blit(hud_surface, (20, 20))
         
-    def draw_volume_bar(self):
-        # Draw volume bar
-        #pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
-        
-        # fill parts
-        #fill_width = int(self.volume * self.volume_bar.image.get_width())
-        #fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
-        #pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
-
-        # Drag knob
-        #knob_x = self.volume_bar.x + fill_width
-        #knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
-        
-        self.volume_bar.ChangeAnim(7- int(self.volume * 7))
-        self.volume_bar.draw(self.window)
-        # The max/min to keep knob within bar
-        #knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
-        #pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
-
-# ===== Debugger =====
-class Debugger:
-    def __init__(self, mode_arg):
-        self.mode = mode_arg
-    def log(self, message):
-        if self.mode == "debug":
-            print("Debugger log: " + str(message))
-
-# ===== Audio =====
-class Audio:
-    def __init__(self):
-        try:
-            pygame.mixer.init()
-            pygame.mixer.music.load(os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3"))
-            pygame.mixer.music.play(-1)
-        except Exception as e:
-            print("Error loading audio: " + str(e))
+    
 
 # ===== Main loop =====
+pygame.init()
+clock = pygame.time.Clock()
 game_instance = Game()
 try:
     while True:
