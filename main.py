@@ -24,10 +24,9 @@ def get_sprite(sheet,x,y,width,height):
 class Game:
     # Probably move this to a settings.ini file later
     # Maybe make a UI class
-    WINDOW_WIDTH = 1280
-    WINDOW_HEIGHT = 720
+    WINDOW_WIDTH = 800
+    WINDOW_HEIGHT = 451
     FPS = 60
-    SPRITE_SIZE = 90
     FONT_SIZE = 25
     MARGINS = 30
     TITLE = "Major Skill Issue - Group 9"
@@ -39,7 +38,7 @@ class Game:
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption(self.TITLE)
         a, b = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
-        self.anim_data = AnimData(a, b)
+        self.zombie_anim_data = AnimData(a, b)
         self.debugger = Debugger("debug")
         self.audio = Audio()
     def start(self):
@@ -50,8 +49,8 @@ class Game:
         self.time = 0
 
         anim_index = 0
-        anim_change_time = time.time()
-        sprite = AnimatedSprite(self.anim_data, current_anim=0, anim_fps=8, x=100, y=100)
+        anim_change_time = 0.0
+        zombie_sprite = AnimatedSprite(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=50, base_resolution=(800,451), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         # Load background
         self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background.png"), 
                         (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
@@ -86,16 +85,15 @@ class Game:
             self.update()
             self.draw()
             
-
-            
             # Switch animation every 5 seconds
-            if time.time() - anim_change_time > 5.0:
-                anim_index = (anim_index + 1) % len(self.anim_data.frame_info)
-                sprite.ChangeAnim(anim_index)
-                anim_change_time = time.time()
+            anim_change_time += dt
+            if anim_change_time >= 5.0:
+                anim_index = (anim_index + 1) % len(self.zombie_anim_data.frame_info)
+                zombie_sprite.ChangeAnim(anim_index)
+                anim_change_time = 0.0
             # Update sprite animation
-            sprite.UpdateAnim(dt)
-            sprite.draw(self.window)
+            zombie_sprite.UpdateAnim(dt)
+            zombie_sprite.draw(self.window)
             pygame.display.flip()
     def update(self):
         # Updates game logic
