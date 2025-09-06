@@ -9,6 +9,7 @@ from Sprite import *
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 zombie_sheet_path = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
+volume_bar_sheet_path = os.path.join(ASSETS_DIR, "UI", "Charging bars and buttons", "Volume bars.png")
 def load_image(path, scale=None):
     image = pygame.image.load(path).convert_alpha()
     if scale:
@@ -197,8 +198,6 @@ class Game:
         self.highscore = 0
         self.volume = 0.5
         pygame.mixer.music.set_volume(self.volume)
-        self.volume_bar = pygame.Rect(1000,60, 200, 20)
-        self.dragging_volume = False
 
         self.spawn_points = [
         (400, 200), (590, 200), (780, 200),
@@ -212,11 +211,22 @@ class Game:
         # Start game
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption(self.TITLE)
-        a, b = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
-        self.zombie_anim_data = AnimData(a, b)
+
+        volume_bar_images, volume_bar_frame_info = from_concat_sheet(load_sheets([volume_bar_sheet_path])[0],48, 32,[1,1,1,1,1,1,1,1])
+        volume_bar_anim_data = AnimData(volume_bar_images, volume_bar_frame_info)
+        self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(3200,1792), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        #self.volume_bar = pygame.Rect(1000,60, 200, 20)
+        self.dragging_volume = False
+
+        zombie_images, zombie_frame_info = from_multiline_sheet(load_sheets([zombie_sheet_path])[0],32, 32,[8, 7, 8, 13, 9, 8])
+        self.zombie_anim_data = AnimData(zombie_images, zombie_frame_info)
         self.debugger = Debugger("debug")
         self.audio = Audio()
+<<<<<<< HEAD
 
+=======
+        self.debugger.log("init done")
+>>>>>>> ce31c5f98439ac6b3725fdd8cec949a33cecb14f
     def start(self):
         # Initialize in-game variables
         self.score = 0
@@ -257,6 +267,7 @@ class Game:
         cursor_image = load_image(os.path.join(ASSETS_DIR, "UI", "cursor.png"), (100, 100))
         self.cursor = cursor_image
         running = True
+        self.debugger.log("pre-loop done")
         while running:
             dt = clock.tick(60) / 1000.0  # delta time in seconds
             for event in pygame.event.get():
@@ -310,8 +321,9 @@ class Game:
             self.misses += 1
 
     def handle_volume_event(self, event):
+        #self.debugger.log("enter handle_volume_event")
         knob_radius = 8
-        fill_width = int(self.volume * self.volume_bar.width)
+        fill_width = int(self.volume * self.volume_bar.image.get_width())
         knob_x = self.volume_bar.x + fill_width
         knob_y = 64
 
@@ -320,30 +332,39 @@ class Game:
                                 knob_radius * 2, knob_radius * 2)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
+            self.debugger.log("enter MOUSEBUTTONDOWN")
             mx, my = event.pos
             
 
-            if self.volume_bar.collidepoint(event.pos) or knob_rect.collidepoint(event.pos):
+            if self.volume_bar.is_hit(event.pos) or knob_rect.collidepoint(event.pos):
                 self.dragging_volume = True
                 self.update_volume(mx)
+            self.debugger.log("exit MOUSEBUTTONDOWN")
 
         elif event.type == pygame.MOUSEBUTTONUP:
+            self.debugger.log("enter MOUSEBUTTONUP")
             self.dragging_volume = False
+            self.debugger.log("exit MOUSEBUTTONUP")
 
         elif event.type == pygame.MOUSEMOTION and self.dragging_volume:
+            self.debugger.log("enter MOUSEMOTION")
             mx, my = event.pos
             # Debug log khi kéo
             # print(f"[DEBUG] Drag at: ({mx}, {my}) | knob_y={knob_y}")
             self.update_volume(mx)
+            self.debugger.log("exit MOUSEMOTION")
+        #self.debugger.log("exit handle_volume_event")
 
 
     def update_volume(self, mouse_x, mouse_y=None):
+        self.debugger.log("enter update_volume")
         # Tính volume theo vị trí chuột (chỉ cần trục X)
         relative_x = mouse_x - self.volume_bar.x
-        new_volume = max(0, min(1, relative_x / self.volume_bar.width))
+        new_volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
 
         self.volume = new_volume  # lưu lại volume hiện tại
         pygame.mixer.music.set_volume(self.volume)  # chỉ nhận 1 tham số
+        self.debugger.log("exit update_volume")
 
 
     # def draw_grid(self, grid_size=64, color=(50, 50, 50)):
@@ -376,7 +397,7 @@ class Game:
     #         pygame.Rect(150, 100, self.broken_window_image.get_width(), self.broken_window_image.get_height()),
     #         pygame.Rect(1050, 100, self.broken_window_image2.get_width(), self.broken_window_image2.get_height()),
     #         pygame.Rect(565, 70, self.door.get_width(), self.door.get_height()),
-    #         pygame.Rect(1000, 60, self.volume_bar.width, self.volume_bar.height),
+    #         pygame.Rect(1000, 60, self.volume_bar.image.get_width(), self.volume_bar.image.get_height()),
     #     ]
 
     #     for rect in colliders:
@@ -415,18 +436,19 @@ class Game:
     def draw_volume_bar(self):
         # Draw volume bar
         pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
-
+        
         # fill parts
-        fill_width = int(self.volume * self.volume_bar.width)
-        fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.height)
+        fill_width = int(self.volume * self.volume_bar.image.get_width())
+        fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
         pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
 
         # Drag knob
         knob_x = self.volume_bar.x + fill_width
-        knob_y = self.volume_bar.y + self.volume_bar.height // 2
-
+        knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
+        
+        self.volume_bar.draw(self.window)
         # The max/min to keep knob within bar
-        knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.width))
+        knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
         pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
 
 class Debugger:

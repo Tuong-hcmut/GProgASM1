@@ -160,7 +160,7 @@ class AnimatedSprite(Sprite):                          # Inherited stuff from Sp
 
     def UpdateAnim(self, delta_time: float) -> None:                                # Play animation sequence, delta_time refer to time elapsed since last check, fed externally
         # Note: Do NOT forget to set delta_time back to zero after(not here, ofc)
-        if not self.visible:                                                        # U can't see me       
+        if (not self.visible) or (self.anim_data.frame_info[self.anim_num].num_frames < 2):                                                        # U can't see me       
             return
         self.frame_time += delta_time                                               # Accumulate frame time
         frame_interval = 1.0 / max(self.anim_fps, 0.0001)                           # Advance frames if it's time, value capped so you don't end up with overflow
