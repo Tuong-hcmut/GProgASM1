@@ -38,10 +38,10 @@ class SpriteButton:
         return False
 
 class Zombie(AnimatedSprite):
-    def __init__(self, anim_data, x, y, anim_fps=8):
+    def __init__(self, anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(3200,1792), current_resolution=(3200,1792)):
         lifetime_ms = random.randint(800, 1500)  # thời gian sống random
-        super().__init__(anim_data, current_anim=0, anim_fps=anim_fps,
-                         x=x, y=y, lifetime_ms=lifetime_ms)
+        super().__init__(anim_data=anim_data, anim_fps=anim_fps, x=x, y=y, target_height=target_height, base_resolution=base_resolution, current_resolution=current_resolution)
+        self.lifetime_ms=lifetime_ms
         self.spawn_time = pygame.time.get_ticks()
 
     def update(self, dt):
@@ -187,6 +187,8 @@ def main_menu():
 class Game:
     # Probably move this to a settings.ini file later
     # Maybe make a UI class
+    BASE_WIDTH = 3200
+    BASE_HEIGHT = 1792
     WINDOW_WIDTH = 1200
     WINDOW_HEIGHT = 800
     FPS = 60
@@ -214,7 +216,7 @@ class Game:
 
         volume_bar_images, volume_bar_frame_info = from_concat_sheet(load_sheets([volume_bar_sheet_path])[0],48, 32,[1,1,1,1,1,1,1,1])
         volume_bar_anim_data = AnimData(volume_bar_images, volume_bar_frame_info)
-        self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(3200,1792), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         #self.volume_bar = pygame.Rect(1000,60, 200, 20)
         self.dragging_volume = False
 
@@ -232,7 +234,7 @@ class Game:
         anim_index = 0
         anim_change_time = 0.0
 
-        zombie_sprite = AnimatedSprite(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=50, base_resolution=(800,451), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        zombie_sprite = Zombie(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(self.BASE_WIDTH,self.BASE_HEIGHT), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         # Load background
         self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background_new.png"), 
                         (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
