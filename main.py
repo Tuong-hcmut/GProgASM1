@@ -382,21 +382,22 @@ class Game:
         
     def draw_volume_bar(self):
         # Draw volume bar
-        pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
+        #pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
         
         # fill parts
-        fill_width = int(self.volume * self.volume_bar.image.get_width())
-        fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
-        pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
+        #fill_width = int(self.volume * self.volume_bar.image.get_width())
+        #fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
+        #pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
 
         # Drag knob
-        knob_x = self.volume_bar.x + fill_width
-        knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
+        #knob_x = self.volume_bar.x + fill_width
+        #knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
         
+        self.volume_bar.ChangeAnim(7- int(self.volume * 7))
         self.volume_bar.draw(self.window)
         # The max/min to keep knob within bar
-        knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
-        pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
+        #knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
+        #pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
 
 class Debugger:
     def __init__(self, mode_arg):
@@ -412,7 +413,7 @@ class Audio:
     def __init__(self):
         try:
             pygame.mixer.init()
-            pygame.mixer.music.load(os.path.join(BASE_DIR, "sounds", "[01] Eternal Night Vignette ~ Eastern Night.flac"))
+            pygame.mixer.music.load(os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3"))
             pygame.mixer.music.play(-1)
         except Exception as e:
             print("Error loading audio: " + str(e))
