@@ -36,7 +36,23 @@ class SpriteButton:
                 return True
         return False
 
+class Zombie(AnimatedSprite):
+    def __init__(self, anim_data, x, y, anim_fps=8):
+        lifetime_ms = random.randint(800, 1500)  # thời gian sống random
+        super().__init__(anim_data, current_anim=0, anim_fps=anim_fps,
+                         x=x, y=y, lifetime_ms=lifetime_ms)
+        self.spawn_time = pygame.time.get_ticks()
 
+    def update(self, dt):
+        self.UpdateAnim(dt)
+        # check lifetime
+        if self.lifetime_ms is not None:
+            age = pygame.time.get_ticks() - self.spawn_time
+            if age >= self.lifetime_ms:
+                self.visible = False
+
+    def is_alive(self):
+        return self.visible
 
 def load_buttons(path):
     sheet = pygame.image.load(path).convert_alpha()
@@ -184,6 +200,15 @@ class Game:
         self.volume_bar = pygame.Rect(1000,60, 200, 20)
         self.dragging_volume = False
 
+        self.spawn_points = [
+        (400, 200), (590, 200), (780, 200),
+        (400, 300), (590, 300), (780, 300),
+        (400, 400), (590, 400), (780, 400)
+        ]
+        self.zombies = []
+        self.next_spawn_time = time.time() + random.uniform(1.0, 2.0)
+
+
         # Start game
         self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption(self.TITLE)
@@ -191,6 +216,7 @@ class Game:
         self.zombie_anim_data = AnimData(a, b)
         self.debugger = Debugger("debug")
         self.audio = Audio()
+
     def start(self):
         # Initialize in-game variables
         self.score = 0
@@ -265,7 +291,24 @@ class Game:
         # Updates game logic
         if self.score > self.highscore:
             self.highscore = self.score
+
+    def spawn_zombie(self):
+        x, y = random.choice(self.spawn_points)
+        z = Zombie(self.zombie_anim_data, x, y, anim_fps=8)
+        self.zombies.append(z)
     
+    def handle_click(self, pos):
+        hit_any = False
+        for z in self.zombies:
+            if z.visible and z.is_hit(pos):
+                self.hits += 1
+                self.score += 1
+                z.visible = False
+                hit_any = True
+                break
+        if not hit_any:
+            self.misses += 1
+
     def handle_volume_event(self, event):
         knob_radius = 8
         fill_width = int(self.volume * self.volume_bar.width)
@@ -361,6 +404,13 @@ class Game:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         cursor_rect = self.cursor.get_rect(center=(mouse_x, mouse_y))
         self.window.blit(self.cursor, cursor_rect.topleft)
+
+        # HUD
+        font = pygame.font.SysFont("Arial", 28, bold=True)
+        accuracy = (self.hits / (self.hits + self.misses) * 100) if (self.hits + self.misses) > 0 else 0
+        hud_text = f"Hits: {self.hits}  Misses: {self.misses}  Score: {self.score}  Accuracy: {accuracy:.1f}%"
+        hud_surface = font.render(hud_text, True, (255, 255, 255))
+        self.window.blit(hud_surface, (20, 20))
         
     def draw_volume_bar(self):
         # Draw volume bar
