@@ -75,10 +75,11 @@ class Button(Sprite):
         return False
 
 class Zombie(AnimatedSprite):
-    def __init__(self, anim_data, x, y, anim_fps=8):
+    def __init__(self, anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(BASE_WIDTH,BASE_HEIGHT), current_resolution=(WINDOW_WIDTH,WINDOW_HEIGHT)):
+        print("made zombie")
         lifetime_ms = random.randint(800, 1500)  # thời gian sống random
-        super().__init__(anim_data, current_anim=0, anim_fps=anim_fps,
-                         x=x, y=y, lifetime_ms=lifetime_ms)
+        super().__init__(anim_data, anim_fps=anim_fps,
+                         x=x, y=y, target_height=target_height, base_resolution=base_resolution, current_resolution=current_resolution)
         self.spawn_time = pygame.time.get_ticks()
 
     def update(self, dt):
@@ -151,7 +152,7 @@ def main_menu():
            
             if not in_settings:
                 if start_button.is_clicked(event):
-                    print("chose start")
+                    print("chose start main menu")
                     return "start"
                 elif settings_button.is_clicked(event):
                     in_settings = True
@@ -341,12 +342,13 @@ class Game:
 
         anim_index = 0
         anim_change_time = 0.0
-
+        print("fuck")
         zombie_sprite = Zombie(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(BASE_WIDTH,BASE_HEIGHT), current_resolution=(WINDOW_WIDTH, WINDOW_HEIGHT))
-
+        print("not zombie")
         # Load background
         self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background_new.png"), 
                         (WINDOW_WIDTH, WINDOW_HEIGHT))
+        print("here")
         # Load graves
         grave_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png"))
         self.grave = pygame.transform.scale(get_sprite(grave_image, 0, 0, 32, 32), (80, 80))
@@ -429,7 +431,7 @@ class Game:
         z = Zombie(self.zombie_anim_data, x, y, anim_fps=8)
         self.zombies.append(z)
 
-    def handle_volume_event(self, event):
+    """def handle_volume_event(self, event):
         #self.debugger.log("enter handle_volume_event")
         knob_radius = 8
         fill_width = int(self.volume * self.volume_bar.image.get_width())
@@ -462,10 +464,10 @@ class Game:
             # print(f"[DEBUG] Drag at: ({mx}, {my}) | knob_y={knob_y}")
             self.update_volume(mx)
             self.debugger.log("exit MOUSEMOTION")
-        #self.debugger.log("exit handle_volume_event")
+        #self.debugger.log("exit handle_volume_event")"""
 
 
-    def update_volume(self, mouse_x, mouse_y=None):
+    """def update_volume(self, mouse_x, mouse_y=None):
         self.debugger.log("enter update_volume")
         # Tính volume theo vị trí chuột (chỉ cần trục X)
         relative_x = mouse_x - self.volume_bar.x
@@ -473,7 +475,7 @@ class Game:
 
         self.volume = new_volume  # lưu lại volume hiện tại
         pygame.mixer.music.set_volume(self.volume)  # chỉ nhận 1 tham số
-        self.debugger.log("exit update_volume")
+        self.debugger.log("exit update_volume")"""
 
 
     # def draw_grid(self, grid_size=64, color=(50, 50, 50)):
@@ -542,42 +544,25 @@ class Game:
         hud_surface = font.render(hud_text, True, (255, 255, 255))
         self.window.blit(hud_surface, (20, 20))
         
-    def draw_volume_bar(self):
+    #def draw_volume_bar(self):
         # Draw volume bar
-        pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
+        #pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
         
         # fill parts
-        fill_width = int(self.volume * self.volume_bar.image.get_width())
-        fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
-        pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
+        #fill_width = int(self.volume * self.volume_bar.image.get_width())
+        # = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
+        #pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
 
         # Drag knob
-        knob_x = self.volume_bar.x + fill_width
-        knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
+        #knob_x = self.volume_bar.x + fill_width
+        #knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
         
-        self.volume_bar.draw(self.window)
+        #self.volume_bar.draw(self.window)
         # The max/min to keep knob within bar
-        knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
-        pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
+        #knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
+        #pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
 
-class Debugger:
-    def __init__(self, mode_arg):
-        self.mode = mode_arg
-    def log(self, message):
-        if self.mode == "debug":
-            print("Debugger log: " + str(message))
-            
-    def log_rect(self, name, rect):
-        if self.mode == "debug":
-            print(f"[DEBUG] {name}: pos={rect.topleft}, size={rect.size}")
-class Audio:
-    def __init__(self):
-        try:
-            pygame.mixer.init()
-            pygame.mixer.music.load(os.path.join(BASE_DIR, "sounds", "[01] Eternal Night Vignette ~ Eastern Night.flac"))
-            pygame.mixer.music.play(-1)
-        except Exception as e:
-            print("Error loading audio: " + str(e))
+
 
 pygame.init()
 clock = pygame.time.Clock()
