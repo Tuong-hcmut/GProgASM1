@@ -6,23 +6,42 @@ from typing import List, Optional, Tuple
 class Sprite:
     def __init__(
         self,
-        image: pygame.Surface,      # The sprite image
-        x: int,                     # Horizontal position, top-left corner as anchor
-        y: int,                     # Vertical position, top-left corner as anchor
-        draw_order: int = 0,        # Rendering priority (higher = drawn later = on top)
-        hitbox_expand: int = 0,     # Pad the collision box outwards by N pixels, relative to sprite
-        visible: bool = True,       # Flag for whether to draw
-        use_hitbox: bool = True,    # Flag for interactable
-        collidable: bool = True     # Flag for whether to check collisions
+        image: pygame.Surface,                             # The sprite image
+        x: int,                                            # Horizontal position, top-left corner as anchor, relative to base resolution
+        y: int,                                            # Vertical position, top-left corner as anchor, relative to base resolution
+        target_height: int,                                # Pixel height to scale to, relative to base resolution
+        draw_order: int = 0,                               # Rendering priority (higher = drawn later = on top)
+        hitbox_expand: int = 0,                            # Pad the collision box outwards by N pixels, relative to sprite
+        visible: bool = True,                              # Flag for whether to draw
+        use_hitbox: bool = True,                           # Flag for interactable
+        collidable: bool = True,                           # Flag for whether to check collisions
+        base_resolution: Tuple[int, int] = (800, 600),     # Intended resolution of the game
+        current_resolution: Tuple[int, int] = (800, 600)   # Actual resolution for scaling
     ):
-        self.image = image
-        self.x = x
-        self.y = y
+        self.original_image = image                        # Keep unscaled copy
+        self.image = image                                 # Scaled copy
+        self.x = x * current_resolution[0] / base_resolution[0]
+        self.y = y * current_resolution[1] / base_resolution[1]
+        self.target_height = target_height
         self.draw_order = draw_order
+        self.original_hitbox_expand = hitbox_expand
         self.hitbox_expand = hitbox_expand
         self.visible = visible
         self.use_hitbox = use_hitbox
         self.collidable = collidable
+        self.base_resolution = base_resolution
+        self.current_resolution = current_resolution
+        self.update_scale_static(current_resolution)
+
+    def update_scale_static(self, current_resolution: Tuple[int, int]) -> None:      # Adaptive scaling for static sprites, if animated then use the other one
+        sx = current_resolution[0] / self.base_resolution[0]
+        sy = current_resolution[1] / self.base_resolution[1]
+
+        w, h = self.original_image.get_size()
+        scale_factor = self.target_height / h
+        new_size = (int(w * sx * scale_factor), int(h * sy * scale_factor))
+        self.image = pygame.transform.scale(self.original_image, new_size)
+        self.hitbox_expand = int(self.original_hitbox_expand * sx * scale_factor)
 
     @property
     def rect(self) -> pygame.Rect:                                        # Le hitbox creator
@@ -51,7 +70,7 @@ class AnimData:                          # The sprites and how to navigate them
     images: List[pygame.Surface]         # The sprite sheet
     frame_info: List[AnimFrameData]      # A list of available actions
 
-    def __post_init__(self):      # Input validation
+    def __post_init__(self):             # Input validation
         last_frame = len(self.images)
 
         for i, anim in enumerate(self.frame_info):
@@ -74,32 +93,53 @@ class AnimData:                          # The sprites and how to navigate them
 
 
 # Animated Sprite
-class AnimatedSprite(Sprite):                   # Inherited stuff from Sprite and others, refer to original class if no comment available. Alternatively, "git gud"
+class AnimatedSprite(Sprite):                          # Inherited stuff from Sprite and others, refer to original class if no comment available. Alternatively, "git gud"
     def __init__(
         self,
         anim_data: AnimData,
-        current_anim: int = 0,                  # Animation currently playing, refer to frame_info
+        current_anim: int = 0,                         # Animation currently playing, refer to frame_info
         anim_fps: float = 24.0,
-        lifetime_ms: Optional[int] = None,      # Auto-despawn countdown
         x: int = 0,
         y: int = 0,
+        target_height: int = 50,
         draw_order: int = 0,
         hitbox_expand: int = 0,
         visible: bool = True,
         use_hitbox: bool = True,
-        collidable: bool = True
+        collidable: bool = True,
+        base_resolution: Tuple[int, int] = (800, 600),
+        current_resolution: Tuple[int, int] = (800, 600)
     ):
         # Set initial image from starting animation's first frame
         start_frame_index = anim_data.frame_info[current_anim].start_frame
         image = anim_data.images[start_frame_index]
 
-        super().__init__(image, x, y, draw_order, hitbox_expand, visible, use_hitbox, collidable)
+        super().__init__(image, x, y, target_height, draw_order, hitbox_expand, visible, use_hitbox, collidable, base_resolution, current_resolution)
 
+        self.original_images = anim_data.images       
         self.anim_data = anim_data
         self.anim_num = current_anim
         self.frame_num = 0
         self.frame_time = 0.0
         self.anim_fps = float(anim_fps)
+        self.update_scale(current_resolution)
+
+    def update_scale(self, current_resolution: Tuple[int, int]) -> None:      # Adaptive scaling
+        sx = current_resolution[0] / self.base_resolution[0]
+        sy = current_resolution[1] / self.base_resolution[1]
+
+        # Rescale every frame in AnimData
+        scaled_images = []
+        for img in self.original_images:
+            w, h = img.get_size()
+            scale_factor = self.target_height / h
+            new_size = (int(w * sx * scale_factor), int(h * sy * scale_factor))
+            scaled_images.append(pygame.transform.scale(img, new_size))
+
+        self.anim_data.images = scaled_images
+        self.image = scaled_images[self.anim_data.frame_info[self.anim_num].start_frame]
+        self.hitbox_expand = int(self.original_hitbox_expand * sx * scale_factor)
+
 
     def OverrideSprite(self, myData: AnimData, startingAnimNum: int) -> None:      # If we ever got around to making multi-phase bossfights, for now, redundant
         self.anim_data = myData
