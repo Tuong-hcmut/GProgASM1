@@ -10,23 +10,63 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 zombie_sheet_path = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
 volume_bar_sheet_path = os.path.join(ASSETS_DIR, "UI", "Charging bars and buttons", "Volume bars.png")
-def load_image(path, scale=None):
-    image = pygame.image.load(path).convert_alpha()
-    if scale:
-        image = pygame.transform.scale(image, scale)
-    return image
+BASE_WIDTH = 3200
+BASE_HEIGHT = 1792
+WINDOW_WIDTH = 1200
+WINDOW_HEIGHT = 800
+FPS = 60
+FONT_SIZE = 25
+MARGINS = 30
+TITLE = "Major Skill Issue - Group 9"
+# ===== Debugger =====
+class Debugger:
+    def __init__(self, mode_arg):
+        self.mode = mode_arg
+    def log(self, message):
+        if self.mode == "debug":
+            print("Debugger log: " + str(message))
 
-def get_sprite(sheet,x,y,width,height):
-        rect = pygame.Rect(x, y, width, height)
-        sprite = sheet.subsurface(rect).copy()
-        return sprite
-class SpriteButton:
-    def __init__(self, image, pos):
-        self.image = image
-        self.rect = self.image.get_rect(topleft=pos)
+# ===== Audio =====
+class Audio:
+    def __init__(self):
+        try:
+            pygame.mixer.init()
+            pygame.mixer.music.load(os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3"))
+            pygame.mixer.music.play(-1)
+        except Exception as e:
+            print("Error loading audio: " + str(e))
 
-    def draw(self, window):
-        window.blit(self.image, self.rect)
+
+# ===== Sprite subclasses =====
+class Grave(Sprite):
+    def __init__(self, x, y, target_height=80, base_res=(800, 600), curr_res=(800,600)):
+        full_image = pygame.image.load(
+            os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png")
+        ).convert_alpha()
+        
+        # Cut the upper half (RIP gravestone)
+        width = full_image.get_width()
+        height = full_image.get_height() // 2   # divide in half
+        image = full_image.subsurface((0, 0, width, height)).copy()
+
+        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
+
+class Cursor(Sprite):
+    def __init__(self, x=0, y=0, target_height=100, base_res=(800,600), curr_res=(800,600)):
+        image = pygame.image.load(os.path.join(ASSETS_DIR, "UI", "cursor.png")).convert_alpha()
+        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
+
+    def draw_centered(self, surface):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        rect = self.image.get_rect(center=(mouse_x, mouse_y))
+        surface.blit(self.image, rect.topleft)
+
+class Button(Sprite):
+    def __init__(self, image, x, y, target_height=200, base_res=(BASE_WIDTH,BASE_HEIGHT), curr_res=(WINDOW_WIDTH,WINDOW_HEIGHT)):
+        print("enter button")
+        #image = pygame.image.load(image_path).convert_alpha()
+        print("enter sprite")
+        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
 
     def is_clicked(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -52,44 +92,58 @@ class Zombie(AnimatedSprite):
     def is_alive(self):
         return self.visible
 
+def load_image(path, scale=None):
+    print("loading img")
+    image = pygame.image.load(path).convert_alpha()
+    if scale:
+        image = pygame.transform.scale(image, scale)
+    return image
+
+def get_sprite(sheet,x,y,width,height):
+        rect = pygame.Rect(x, y, width, height)
+        sprite = sheet.subsurface(rect).copy()
+        return sprite
 def load_buttons(path):
     sheet = pygame.image.load(path).convert_alpha()
     print("[DEBUG] Sheet size:", sheet.get_width(), sheet.get_height())
     buttons = {
-        "play": get_sprite(sheet, 0, 160, 190, 40),       # PLAY
-        "settings": get_sprite(sheet, 0, 180, 190, 40),   # SETTINGS
-        "exit": get_sprite(sheet, 0, 200, 190, 40)        # EXIT
+        "play": get_sprite(sheet, 0, 200, 190, 40),       # PLAY
+        "settings": get_sprite(sheet, 0, 400, 190, 40),   # SETTINGS
+        "exit": get_sprite(sheet, 0, 600, 190, 40)        # EXIT
     }
     return buttons
 
 def main_menu():
-    window = pygame.display.set_mode((Game.WINDOW_WIDTH, Game.WINDOW_HEIGHT))
+    print("begin main menu")
+    window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Whack-a-zombie")
+    print("begin get menu")
     cursor_image = load_image(os.path.join(ASSETS_DIR, "UI", "cursor.png"), (100, 100))
     pygame.mouse.set_visible(False)
     # Load background cho menu
     menu_bg = load_image(os.path.join(ASSETS_DIR,"Background", "background_new.png"),
-                         (Game.WINDOW_WIDTH, Game.WINDOW_HEIGHT))
+                         (WINDOW_WIDTH, WINDOW_HEIGHT))
 
 # Load sprite sheet button 
     start_button_img = load_image(os.path.join(ASSETS_DIR, "Play_button.png"), (300, 60))
     settings_button_img = load_image(os.path.join(ASSETS_DIR, "Settings_button.png"), (300, 60))
     exit_button_img = load_image(os.path.join(ASSETS_DIR, "Exit.png"), (300, 60))
 
-
+    print("before main menu center")
     def center_button(img, y):
-        return SpriteButton(img, (Game.WINDOW_WIDTH//2 - img.get_width()//2, y))
+        return Button(img, x=WINDOW_WIDTH//2 - img.get_width()//2, y=y)
 
-    start_button = center_button(start_button_img, 250)
-    settings_button = center_button(settings_button_img, 360)
-    exit_button = center_button(exit_button_img, 470)
+    start_button = center_button(start_button_img, 450)
+    settings_button = center_button(settings_button_img, 750)
+    exit_button = center_button(exit_button_img, 1050)
 
-
+    print("after main menu center")
     clock = pygame.time.Clock()
     in_menu = True
     in_settings = False
     title_font = pygame.font.SysFont("Arial", 80, bold=True)
     while in_menu:
+        #print("in main menu")
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -97,6 +151,7 @@ def main_menu():
            
             if not in_settings:
                 if start_button.is_clicked(event):
+                    print("chose start")
                     return "start"
                 elif settings_button.is_clicked(event):
                     in_settings = True
@@ -127,7 +182,7 @@ def main_menu():
             outline = title_font.render(text, True, (0, 0, 0))
 
             # Tọa độ trung tâm
-            x = Game.WINDOW_WIDTH // 2 - title_label.get_width() // 2
+            x = WINDOW_WIDTH // 2 - title_label.get_width() // 2
             y = 120
 
             # Vẽ outline dày hơn bằng cách dịch nhiều hướng
@@ -156,7 +211,7 @@ def main_menu():
             outline = title_font.render(text, True, (0, 0, 0))
 
             # Tọa độ trung tâm
-            x = Game.WINDOW_WIDTH // 2 - title_label.get_width() // 2
+            x = WINDOW_WIDTH // 2 - title_label.get_width() // 2
             y = 120
 
             # Vẽ outline dày hơn bằng cách dịch nhiều hướng
@@ -173,7 +228,7 @@ def main_menu():
 
             small_font = pygame.font.SysFont("Arial", 20)
             esc_label = small_font.render("Press ESC to return", True, (200, 200, 200))
-            window.blit(esc_label, (Game.WINDOW_WIDTH//2 - 90, 500))
+            window.blit(esc_label, (WINDOW_WIDTH//2 - 90, 500))
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
         cursor_rect = cursor_image.get_rect(center=(mouse_x, mouse_y))
@@ -184,14 +239,9 @@ def main_menu():
 class Game:
     # Probably move this to a settings.ini file later
     # Maybe make a UI class
-    WINDOW_WIDTH = 1200
-    WINDOW_HEIGHT = 800
-    FPS = 60
-    FONT_SIZE = 25
-    MARGINS = 30
-    TITLE = "Major Skill Issue - Group 9"
     def __init__(self):
         # Initialize persistent variables
+        print("start init")
         self.highscore = 0
         self.volume = 0.5
         pygame.mixer.music.set_volume(self.volume)
@@ -206,12 +256,12 @@ class Game:
 
 
         # Start game
-        self.window = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
-        pygame.display.set_caption(self.TITLE)
+        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        pygame.display.set_caption(TITLE)
 
         volume_bar_images, volume_bar_frame_info = from_concat_sheet(load_sheets([volume_bar_sheet_path])[0],48, 32,[1,1,1,1,1,1,1,1])
         volume_bar_anim_data = AnimData(volume_bar_images, volume_bar_frame_info)
-        self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(3200,1792), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        self.volume_bar = AnimatedSprite(anim_data=volume_bar_anim_data, anim_fps=0, x=3000, y=60, target_height=120, base_resolution=(BASE_WIDTH,BASE_HEIGHT), current_resolution=(WINDOW_WIDTH, WINDOW_HEIGHT))
         #self.volume_bar = pygame.Rect(1000,60, 200, 20)
         self.dragging_volume = False
 
@@ -219,8 +269,71 @@ class Game:
         self.zombie_anim_data = AnimData(zombie_images, zombie_frame_info)
         self.debugger = Debugger("debug")
         self.audio = Audio()
+        self.debugger.log("done init")
+
+
+    # ===== Volume bar =====
+    def handle_volume_event(self, event):
+        self.debugger.log("enter handle_volume_event")
+        knob_radius = 8
+        fill_width = int(self.volume * self.volume_bar.image.get_width())
+        knob_x = self.volume_bar.x + fill_width
+        knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2   # consistent with draw_volume_bar
+
+        # Tạo rect bao quanh knob để click dễ hơn
+        knob_rect = pygame.Rect(knob_x - knob_radius, knob_y - knob_radius,
+                                knob_radius * 2, knob_radius * 2)
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self.debugger.log("enter MOUSEBUTTONDOWN")
+            mx, my = event.pos
+            
+
+            if self.volume_bar.is_hit(event.pos) or knob_rect.collidepoint(event.pos):
+                self.dragging_volume = True
+                self.update_volume(mx)
+            self.debugger.log("exit MOUSEBUTTONDOWN")
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.debugger.log("enter MOUSEBUTTONUP")
+            self.dragging_volume = False
+            self.debugger.log("exit MOUSEBUTTONUP")
+
+        elif event.type == pygame.MOUSEMOTION and self.dragging_volume:
+            self.debugger.log("enter MOUSEMOTION")
+            mx, my = event.pos
+            # Debug log khi kéo
+            # print(f"[DEBUG] Drag at: ({mx}, {my}) | knob_y={knob_y}")
+            self.update_volume(mx)
+            self.debugger.log("exit MOUSEMOTION")
+        self.debugger.log("exit handle_volume_event")
+
+    def update_volume(self, mouse_x):
+        relative_x = mouse_x - self.volume_bar.x
+        self.volume = max(0, min(1, relative_x / self.volume_bar.image.get_width()))
+        pygame.mixer.music.set_volume(self.volume)
+
+    def draw_volume_bar(self):
+        # Draw volume bar
+        #pygame.draw.rect(self.window, (200, 200, 200), self.volume_bar, 2)
+        
+        # fill parts
+        #fill_width = int(self.volume * self.volume_bar.image.get_width())
+        #fill_rect = pygame.Rect(self.volume_bar.x, self.volume_bar.y, fill_width, self.volume_bar.image.get_height())
+        #pygame.draw.rect(self.window, (0, 200, 0), fill_rect)
+
+        # Drag knob
+        #knob_x = self.volume_bar.x + fill_width
+        #knob_y = self.volume_bar.y + self.volume_bar.image.get_height() // 2
+        
+        self.volume_bar.ChangeAnim(7- int(self.volume * 7))
+        self.volume_bar.draw(self.window)
+        # The max/min to keep knob within bar
+        #knob_x = max(self.volume_bar.x, min(knob_x, self.volume_bar.x + self.volume_bar.image.get_width()))
+        #pygame.draw.circle(self.window, (255, 0, 0), (knob_x, knob_y), 8)
     def start(self):
         # Initialize in-game variables
+        self.debugger.log("start start")
         self.score = 0
         self.hits = 0
         self.misses = 0
@@ -229,10 +342,11 @@ class Game:
         anim_index = 0
         anim_change_time = 0.0
 
-        zombie_sprite = AnimatedSprite(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=50, base_resolution=(800,451), current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        zombie_sprite = Zombie(anim_data=self.zombie_anim_data, anim_fps=8, x=200, y=400, target_height=100, base_resolution=(BASE_WIDTH,BASE_HEIGHT), current_resolution=(WINDOW_WIDTH, WINDOW_HEIGHT))
+
         # Load background
         self.background = load_image(os.path.join(ASSETS_DIR, "Background", "background_new.png"), 
-                        (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+                        (WINDOW_WIDTH, WINDOW_HEIGHT))
         # Load graves
         grave_image = load_image(os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png"))
         self.grave = pygame.transform.scale(get_sprite(grave_image, 0, 0, 32, 32), (80, 80))
@@ -261,7 +375,7 @@ class Game:
         running = True
         self.debugger.log("pre-loop done")
         while running:
-            dt = clock.tick(60) / 1000.0  # delta time in seconds
+            dt = clock.tick(FPS)/1000.0 # delta time in seconds
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False 
@@ -281,8 +395,7 @@ class Game:
                 self.handle_volume_event(event)
             self.update()
             self.draw()
-            self.draw_volume_bar()
-            
+            self.debugger.log("mid-loop")
 
             
             # Switch animation every 5 seconds
@@ -299,7 +412,13 @@ class Game:
            # Update sprite animation
             zombie_sprite.UpdateAnim(dt)
             zombie_sprite.draw(self.window)
+            self.draw_volume_bar()
+            self.debugger.log("volbar done")
+            #self.cursor.draw_centered(self.window)
+            self.debugger.log("cursor done")
             pygame.display.flip()
+        self.debugger.log("stop start")
+
     def update(self):
         # Updates game logic
         if self.score > self.highscore:
@@ -360,16 +479,16 @@ class Game:
     # def draw_grid(self, grid_size=64, color=(50, 50, 50)):
     #     """Vẽ lưới hỗ trợ căn tọa độ, giống Unity"""
     #     # Vẽ các đường dọc
-    #     for x in range(0, self.WINDOW_WIDTH, grid_size):
-    #         pygame.draw.line(self.window, color, (x, 0), (x, self.WINDOW_HEIGHT))
+    #     for x in range(0, WINDOW_WIDTH, grid_size):
+    #         pygame.draw.line(self.window, color, (x, 0), (x, WINDOW_HEIGHT))
     #         # In tọa độ lên đầu lưới
     #         font = pygame.font.SysFont("Arial", 14)
     #         label = font.render(str(x), True, (200, 200, 200))
     #         self.window.blit(label, (x+2, 2))
 
     #     # Vẽ các đường ngang
-    #     for y in range(0, self.WINDOW_HEIGHT, grid_size):
-    #         pygame.draw.line(self.window, color, (0, y), (self.WINDOW_WIDTH, y))
+    #     for y in range(0, WINDOW_HEIGHT, grid_size):
+    #         pygame.draw.line(self.window, color, (0, y), (WINDOW_WIDTH, y))
     #         font = pygame.font.SysFont("Arial", 14)
     #         label = font.render(str(y), True, (200, 200, 200))
     #         self.window.blit(label, (2, y+2))
@@ -468,8 +587,10 @@ try:
     while True:
         choice = main_menu()
         if choice == "start":
+            print("chose start")
             result = game_instance.start()
             if result == "menu":
+                print("chose menu")
                 continue
         else:
             break   
