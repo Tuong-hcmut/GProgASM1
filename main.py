@@ -10,7 +10,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 ZOMBIE_SHEET_PATH = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
 HIT_ATTACK_SHEET_PATH = os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "5_100x100px.png")
-GRAVE_SHEET_PATH = os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png")
+GRAVE_SHEET_PATH = os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new_animated.png")
 CURSOR_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "cursor.png")
 BACKGROUND_PATH = os.path.join(ASSETS_DIR,"Background", "background_new.png")
 HAMMER_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "hammer.png")
@@ -35,20 +35,11 @@ def load_image(path, scale=None):
     if scale:
         image = pygame.transform.scale(image, scale)
     return image
-        
-# ===== Sprite subclasses =====
-class Grave(Sprite):
-    def __init__(self, x, y, target_height=80, base_res=(800, 600), curr_res=(1280,720)):
-        full_image = pygame.image.load(
-            GRAVE_SHEET_PATH
-        ).convert_alpha()
-        
-        # Cut the upper half (RIP gravestone)
-        width = full_image.get_width()
-        height = full_image.get_height() // 2   # divide in half
-        image = full_image.subsurface((0, 0, width, height)).copy()
 
-        super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
+# ===== Sprite subclasses =====
+class Grave(AnimatedSprite):
+    def __init__(self, x, y, anim_data, target_height=80, base_res=(1280,720), curr_res=window_resolution):
+        super().__init__(anim_data=anim_data,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
 
 class Cursor(Sprite):
     def __init__(self, x=0, y=0, target_height=100, base_res=(800,600), curr_res=(1280,720)):
@@ -73,7 +64,7 @@ class Button(Sprite):
 
 class Zombie:
     def __init__(self, x, y, anim_data, lifetime_ms):
-        self.sprite = AnimatedSprite(anim_data, anim_fps=8, x=x, y=y, target_height=80, base_resolution=(800,451),
+        self.sprite = AnimatedSprite(anim_data, anim_fps=8, x=x, y=y, target_height=80, base_resolution=(1200,720),
                                        current_resolution=window_resolution)
         self.spawn_time = pygame.time.get_ticks()
         self.lifetime = lifetime_ms
@@ -139,14 +130,12 @@ class Game:
         # self.bloods = []
 
         # Load zombie animation
-        sheets = load_sheets([ZOMBIE_SHEET_PATH])
-        a, b = from_multiline_sheet(sheets[0], 32, 32, [8,7,8,13,9,8])
-        c, d = from_multiline_sheet(load_sheets([HIT_ATTACK_SHEET_PATH])[0],
-                                    100, 100, [6, 6, 6, 6, 6])
+        a, b = from_multiline_sheet(load_sheets([ZOMBIE_SHEET_PATH])[0], 32, 32, [8,7,8,13,9,8])
         self.zombie_anim_data = AnimData(a, b)
+        c, d = from_multiline_sheet(load_sheets([HIT_ATTACK_SHEET_PATH])[0], 100, 100, [6, 6, 6, 6, 6])
         self.hit_anim_data = AnimData(c, d)
-
-        
+        e,f = from_concat_sheet(load_sheets([GRAVE_SHEET_PATH])[0],34,42,[1,7])
+        self.grave_anim_data = AnimData(e,f)        
 
         # Cursor
         self.cursor = Cursor(curr_res=window_resolution)
@@ -180,6 +169,7 @@ class Game:
                 self.graves.append(
                     Grave(
                         x, y,
+                        self.grave_anim_data,
                         target_height=target_height,
                         base_res=(1280,720),
                         curr_res=window_resolution
@@ -188,10 +178,13 @@ class Game:
           
     # ===== Volume bar =====
     def handle_volume_event(self, event):
-        self.volume_bar.handle_event(event)
+        #print("enter handle_volume_event")
+        self.audio.music_bar.handle_event(event)
+        self.audio.hit_bar.handle_event(event)
 
     def draw_volume_bar(self):
-        self.volume_bar.draw(self.window)
+        self.audio.music_bar.draw(self.window)
+        self.audio.hit_bar.draw(self.window)
     
     # ===== Spawn zombie =====
     def spawn_zombie(self):
@@ -303,6 +296,7 @@ class Game:
 
     # ===== Game start =====
     def start(self):
+        print("start")
         self.score = 0
         spawn_timer = 0
         
@@ -319,6 +313,7 @@ class Game:
         self.hammer_swinging = False
         self.hammer_swing_time = 0
 
+        print("preloop")
         running = True
         while running:
             dt = clock.tick(FPS)/1000.0
@@ -333,6 +328,7 @@ class Game:
                     return "menu"
                 self.handle_volume_event(event)
 
+                #print("good")
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 
                     clicked = False
