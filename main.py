@@ -247,10 +247,17 @@ class Game:
         menu_bg = pygame.transform.scale(menu_bg, window_resolution)
 
         # Initialize buttons
-        start_button = Button(PLAY_BUTTON_PATH, 0, 250, curr_res=window_resolution)
-        settings_button = Button(SETTINGS_BUTTON_PATH, 0, 360, curr_res=window_resolution)
-        exit_button = Button(EXIT_BUTTON_PATH, 0, 470, curr_res=window_resolution)
+        start_button = Button(PLAY_BUTTON_PATH, 0, 650, curr_res=window_resolution)
+        settings_button = Button(SETTINGS_BUTTON_PATH, 0, 910, curr_res=window_resolution)
+        exit_button = Button(EXIT_BUTTON_PATH, 0, 1170, curr_res=window_resolution)
 
+        BUTTON_HEIGHT = int(SPRITE_HEIGHT * 1.2)  # adjust multiplier to tune size
+        start_y = 650
+        spacing = BUTTON_HEIGHT + 40
+        start_button = Button(PLAY_BUTTON_PATH, 0, start_y, target_height=BUTTON_HEIGHT, curr_res=window_resolution)
+        settings_button = Button(SETTINGS_BUTTON_PATH, 0, start_y + spacing, target_height=BUTTON_HEIGHT, curr_res=window_resolution)
+        exit_button = Button(EXIT_BUTTON_PATH, 0, start_y + spacing*2, target_height=BUTTON_HEIGHT, curr_res=window_resolution)
+        
         # Center x based on scaled image width
         for btn in [start_button, settings_button, exit_button]:
             btn.x = WINDOW_WIDTH//2 - btn.rect.width//2
