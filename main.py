@@ -22,6 +22,7 @@ BASE_WIDTH = 3200
 BASE_HEIGHT = 1792
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
+SPRITE_HEIGHT = 120
 FPS = 60
 
 base_resolution = (BASE_WIDTH,BASE_HEIGHT)
@@ -38,11 +39,11 @@ def load_image(path, scale=None):
 
 # ===== Sprite subclasses =====
 class Grave(AnimatedSprite):
-    def __init__(self, x, y, anim_data, target_height=80, base_res=(1280,720), curr_res=window_resolution):
+    def __init__(self, x, y, anim_data, target_height=SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
         super().__init__(anim_data=anim_data,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
 
 class Cursor(Sprite):
-    def __init__(self, x=0, y=0, target_height=100, base_res=(800,600), curr_res=(1280,720)):
+    def __init__(self, x=0, y=0, target_height= SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
         image = pygame.image.load(CURSOR_SHEET_PATH).convert_alpha()
         super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
 
@@ -52,7 +53,7 @@ class Cursor(Sprite):
         surface.blit(self.image, rect.topleft)
 
 class Button(Sprite):
-    def __init__(self, image_path, x, y, target_height=60, base_res=(800,600), curr_res=(1280,720)):
+    def __init__(self, image_path, x, y, target_height=SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
         image = pygame.image.load(image_path).convert_alpha()
         super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
 
@@ -64,7 +65,7 @@ class Button(Sprite):
 
 class Zombie:
     def __init__(self, x, y, anim_data, lifetime_ms):
-        self.sprite = AnimatedSprite(anim_data, anim_fps=8, x=x, y=y, target_height=80, base_resolution=(1200,720),
+        self.sprite = AnimatedSprite(anim_data, anim_fps=8, x=x, y=y, target_height=SPRITE_HEIGHT, base_resolution=base_resolution,
                                        current_resolution=window_resolution)
         self.spawn_time = pygame.time.get_ticks()
         self.lifetime = lifetime_ms
@@ -145,7 +146,6 @@ class Game:
 
         num_graves = 9
         spacing_x, spacing_y = 50, 50   # minimum distance
-        target_height = 70
 
         # Blue area (hard-coded coordinates or from background)
         area_rect = pygame.Rect(50, 100, 600, 400)
@@ -170,8 +170,8 @@ class Game:
                     Grave(
                         x, y,
                         self.grave_anim_data,
-                        target_height=target_height,
-                        base_res=(1280,720),
+                        target_height=SPRITE_HEIGHT,
+                        base_res=base_resolution,
                         curr_res=window_resolution
                     )
                 )
