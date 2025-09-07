@@ -341,7 +341,7 @@ class Game:
 
                             self.hits += 1
 
-                            self.hit_sound.play()
+                            self.audio.play_hit()
                             # self.bloods.append(Blood(z.sprite.rect.centerx, z.sprite.rect.centery,
                             #      os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "1", "1_0.png"), lifetime_ms=300))
                             # Tạo hiệu ứng hit tại chỗ zombie
