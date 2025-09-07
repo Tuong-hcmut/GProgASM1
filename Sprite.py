@@ -18,8 +18,8 @@ class Sprite:
         base_resolution: Tuple[int, int] = (800, 600),     # Intended resolution of the game
         current_resolution: Tuple[int, int] = (800, 600)   # Actual resolution for scaling
     ):
-        self.original_image = image                        # Keep unscaled copy
-        self.image = image                                 # Scaled copy
+        self.original_image = image.copy()                 # Keep unscaled copy
+        self.image = self.original_image                                 # Scaled copy
         self.x = x * current_resolution[0] / base_resolution[0]
         self.y = y * current_resolution[1] / base_resolution[1]
         self.target_height = target_height
@@ -111,14 +111,14 @@ class AnimatedSprite(Sprite):                          # Inherited stuff from Sp
         base_resolution: Tuple[int, int] = (800, 600),
         current_resolution: Tuple[int, int] = (800, 600)
     ):
+        self.anim_data = AnimData([img.copy() for img in anim_data.images], anim_data.frame_info)
         # Set initial image from starting animation's first frame
-        start_frame_index = anim_data.frame_info[current_anim].start_frame
-        image = anim_data.images[start_frame_index]
+        start_frame_index = self.anim_data.frame_info[current_anim].start_frame
+        image = self.anim_data.images[start_frame_index]
 
         super().__init__(image, x, y, target_height, draw_order, hitbox_expand, visible, use_hitbox, collidable, base_resolution, current_resolution)
 
-        self.original_images = anim_data.images       
-        self.anim_data = anim_data
+        self.original_images = self.anim_data.images
         self.anim_num = current_anim
         self.frame_num = 0
         self.frame_time = 0.0
