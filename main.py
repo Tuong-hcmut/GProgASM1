@@ -44,6 +44,35 @@ class Grave(AnimatedSprite):
     def __init__(self, x, y, anim_data, target_height=SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
         super().__init__(anim_data=anim_data, anim_fps= 7,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
 
+class Hammer:
+    def __init__(self, image_path, size=(100,100)):
+        self.image = load_image(image_path, size)
+        self.angle = 0
+        self.swinging = False
+        self.swing_time = 0.0
+        self.swing_duration = 0.15  # seconds
+
+    def swing(self):
+        self.swinging = True
+        self.swing_time = time.time()
+        self.angle = -45
+
+    def update(self):
+        if self.swinging:
+            elapsed = time.time() - self.swing_time
+            if elapsed < self.swing_duration:
+                self.angle = -45
+            else:
+                self.swinging = False
+                self.angle = 0
+
+    def draw(self, surface):
+        self.update()
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        rotated = pygame.transform.rotate(self.image, self.angle)
+        rect = rotated.get_rect(center=(mouse_x, mouse_y))
+        surface.blit(rotated, rect)
+
 class Cursor(Sprite):
     def __init__(self, x=0, y=0, target_height= SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
         image = pygame.image.load(CURSOR_SHEET_PATH).convert_alpha()
@@ -201,19 +230,7 @@ class Game:
         self.window.blit(label, (10,10))
 
     def draw_hammer(self):
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-
-        if self.hammer_swinging:
-            elapsed = time.time() - self.hammer_swing_time
-            if elapsed < 0.15:
-                self.hammer_angle = -45
-            else:
-                self.hammer_swinging = False
-                self.hammer_angle = 0
-
-        rotated = pygame.transform.rotate(self.hammer, self.hammer_angle)
-        rect = rotated.get_rect(center=(mouse_x, mouse_y))
-        self.window.blit(rotated, rect)
+        self.hammer.draw(self.window)
     # ===== Main menu =====
     def main_menu(self):
         pygame.mouse.set_visible(False)
@@ -301,11 +318,7 @@ class Game:
         self.zombies = []
         self.spawning = []
         self.active_effects = []   # danh sách các hiệu ứng hit
-
-        self.hammer = load_image(HAMMER_SHEET_PATH, (50, 50))
-        self.hammer_angle = 0
-        self.hammer_swinging = False
-        self.hammer_swing_time = 0
+        self.hammer = Hammer(HAMMER_SHEET_PATH, (100, 100))
 
         print("preloop")
         running = True
@@ -327,8 +340,7 @@ class Game:
 
                     clicked = False
                     # Swing hammer
-                    self.hammer_swinging = True
-                    self.hammer_swing_time = time.time()
+                    self.hammer.swing()
                     for z in self.zombies:
 
                         if not z.hit and z.check_hit(event.pos):
