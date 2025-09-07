@@ -50,15 +50,12 @@ class HitEffect(AnimatedSprite):
 
 class Hammer:
     def __init__(self, x=0, y=0, target_height= SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
-        print("start hammer init")
         self.sprite = Sprite(image=pygame.image.load(HAMMER_SHEET_PATH).convert_alpha(), x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
-        print("bruh")
         self.image = self.sprite.image
         self.angle = 0
         self.swinging = False
         self.swing_time = 0.0
         self.swing_duration = 0.15  # seconds
-        print("finish init")
 
     def swing(self):
         self.swinging = True
@@ -104,27 +101,36 @@ class Button(Sprite):
 
 class Zombie:
     def __init__(self, x, y, anim_data, lifetime_ms):
-        self.sprite = AnimatedSprite(anim_data, anim_fps=8, x=x, y=y, target_height=SPRITE_HEIGHT, base_resolution=base_resolution,
+        self.sprite = AnimatedSprite(anim_data=anim_data, anim_fps=8, x=x, y=y, target_height=SPRITE_HEIGHT, base_resolution=base_resolution,
                                        current_resolution=window_resolution)
         self.spawn_time = pygame.time.get_ticks()
         self.lifetime = lifetime_ms
         self.hit = False
+        self.dead = False
     def update(self, dt):
         self.sprite.UpdateAnim(dt)
-        if self.hit:
-            return False
-        # kiểm tra lifetime
-        if pygame.time.get_ticks() - self.spawn_time > self.lifetime:
+        
+        curr_anim = self.sprite.anim_num
+        curr_fram = self.sprite.frame_num
+        now = pygame.time.get_ticks()
+        if now - self.spawn_time > self.lifetime and curr_anim not in (3, 5):      # Lifetime check, only despawn if not already dying
+            self.sprite.ChangeAnim(5)
+            self.hit = True
+        if (curr_anim == 3 and curr_fram >= 7) or (curr_anim == 5 and curr_fram >= 7):
+            self.dead = True
             return False
         return True
 
     def draw(self, surface):
-        if not self.hit:
+        if not self.dead:
             self.sprite.draw(surface)
 
     def check_hit(self, pos):
         if self.sprite.rect.collidepoint(pos) and not self.hit:
             self.hit = True
+            self.sprite.ChangeAnim(3)
+            curr_anim = self.sprite.anim_num
+            curr_fram = self.sprite.frame_num
             return True
         return False
 # class Blood:
@@ -204,7 +210,6 @@ class Game:
             y = random.randint(area_rect.top, area_rect.bottom)
 
             if is_far_enough(x, y, self.graves, spacing_x, spacing_y):
-                print(x,y)
                 self.graves.append(
                     Grave(
                         x // sx, y // sy,
@@ -217,7 +222,6 @@ class Game:
           
     # ===== Volume bar =====
     def handle_volume_event(self, event):
-        #print("enter handle_volume_event")
         self.audio.music_bar.handle_event(event)
         self.audio.hit_bar.handle_event(event)
 
@@ -321,7 +325,6 @@ class Game:
 
     # ===== Game start =====
     def start(self):
-        print("start")
         self.score = 0
         spawn_timer = 0
 
@@ -332,7 +335,6 @@ class Game:
         self.active_effects = []   # danh sách các hiệu ứng hit
         self.hammer = Hammer()
 
-        print("preloop")
         running = True
         while running:
             dt = clock.tick(FPS)/1000.0
@@ -347,7 +349,6 @@ class Game:
                     return "menu"
                 self.handle_volume_event(event)
 
-                #print("good")
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 
                     clicked = False
@@ -364,11 +365,7 @@ class Game:
                             #      os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "1", "1_0.png"), lifetime_ms=300))
                             # Tạo hiệu ứng hit tại chỗ zombie
                             effect = HitEffect((z.sprite.rect.centerx)//sx - TARGET_HEIGHT*3/2, (z.sprite.rect.bottom)//sy  - TARGET_HEIGHT*3/2,self.hit_effect_anim_data,TARGET_HEIGHT*3)
-                            print("sx sy: ",sx,sy)
-                            print("zom x y: ",z.sprite.rect.centerx,z.sprite.rect.centery)
-                            print("offset: ",-0.5* TARGET_HEIGHT*3,0.5* TARGET_HEIGHT*3)
-                            print("vfx x y: ",effect.x,effect.y)
-                            print(" ")
+                            
                             self.active_effects.append(effect)
                             clicked = True
 
