@@ -59,6 +59,7 @@ class Sprite:
     def is_hit(self, point: Tuple[int, int]) -> bool:                     # Literally battleship
         return self.use_hitbox and self.rect.collidepoint(point)
 
+    
 
 # MetaData
 @dataclass
