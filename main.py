@@ -27,6 +27,8 @@ FPS = 60
 
 base_resolution = (BASE_WIDTH,BASE_HEIGHT)
 window_resolution = (WINDOW_WIDTH,WINDOW_HEIGHT)
+sx = WINDOW_WIDTH / BASE_WIDTH
+sy = WINDOW_HEIGHT / BASE_HEIGHT
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -145,14 +147,13 @@ class Game:
         self.graves = []
 
         num_graves = 9
-        spacing_x, spacing_y = 50, 50   # minimum distance
+        spacing_x, spacing_y = SPRITE_HEIGHT*0.5*sx, SPRITE_HEIGHT*sy   # minimum distance
 
         # Blue area (hard-coded coordinates or from background)
-        area_rect = pygame.Rect(50, 100, 600, 400)
-
+        area_rect = pygame.Rect(1000*sx, 600*sy, 1100*sx, 600*sy)
         def is_far_enough(x, y, graves, min_dx, min_dy):
             for g in graves:
-                if abs(x - g.x) < min_dx or abs(y - g.y) < min_dy:
+                if abs(x - g.x) < min_dx and abs(y - g.y) < min_dy:
                     return False
             return True
 
@@ -166,9 +167,10 @@ class Game:
             y = random.randint(area_rect.top, area_rect.bottom)
 
             if is_far_enough(x, y, self.graves, spacing_x, spacing_y):
+                print(x,y)
                 self.graves.append(
                     Grave(
-                        x, y,
+                        x // sx, y // sy,
                         self.grave_anim_data,
                         target_height=SPRITE_HEIGHT,
                         base_res=base_resolution,
@@ -193,7 +195,7 @@ class Game:
 
         lifetime = random.randint(800,1500)
 
-        self.zombies.append(Zombie(grave.x, grave.y, self.zombie_anim_data, lifetime))
+        self.zombies.append(Zombie(grave.x // sx, grave.y // sy, self.zombie_anim_data, lifetime))
 
     # ========= DRAW HUD ==========
 
