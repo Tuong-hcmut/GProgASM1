@@ -2,14 +2,22 @@ import pygame
 import random
 import sys
 import os
+import time
 from Sprite import *  # Use Sprite, AnimatedSprite, AnimData, from_multiline_sheet
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 zombie_sheet_path = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
+hit_attack_sheet_path = os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "5_100x100px.png")
 hit_sound_path = os.path.join(ASSETS_DIR, "sfx", "SFX hit.mp3")
 pygame.init()
 clock = pygame.time.Clock()
+
+def load_image(path, scale=None):
+    image = pygame.image.load(path).convert_alpha()
+    if scale:
+        image = pygame.transform.scale(image, scale)
+    return image
 
 class VolumeBar:
     def __init__(self, image_path, x, y, levels=10):
@@ -194,10 +202,11 @@ class Game:
         # Load zombie animation
         sheets = load_sheets([zombie_sheet_path])
         a, b = from_multiline_sheet(sheets[0], 32, 32, [8,7,8,13,9,8])
+        c, d = from_multiline_sheet(load_sheets([hit_attack_sheet_path])[0],
+                                    100, 100, [6, 6, 6, 6, 6])
         self.zombie_anim_data = AnimData(a, b)
+        self.hit_anim_data = AnimData(c, d)
 
-        
-        
         self.debugger = Debugger("debug")
         self.audio = Audio()
 
@@ -278,8 +287,6 @@ class Game:
 
         self.zombies.append(Zombie(grave.x, grave.y, self.zombie_anim_data, lifetime))
 
-
-
     # ========= DRAW HUD ==========
 
     def draw_hud(self):
@@ -291,6 +298,21 @@ class Game:
         text = f"Hits: {self.hits}  Misses: {self.misses}  Accuracy: {accuracy}%"
         label = font.render(text, True, (255,255,255))
         self.window.blit(label, (10,10))
+
+    def draw_hammer(self):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        if self.hammer_swinging:
+            elapsed = time.time() - self.hammer_swing_time
+            if elapsed < 0.15:
+                self.hammer_angle = -45
+            else:
+                self.hammer_swinging = False
+                self.hammer_angle = 0
+
+        rotated = pygame.transform.rotate(self.hammer, self.hammer_angle)
+        rect = rotated.get_rect(center=(mouse_x, mouse_y))
+        self.window.blit(rotated, rect)
     # ===== Main menu =====
     def main_menu(self):
         pygame.mouse.set_visible(False)
@@ -379,10 +401,20 @@ class Game:
         zombie_sprite = AnimatedSprite(self.zombie_anim_data, anim_fps=8, x=200, y=400,
                                        target_height=50, base_resolution=(800,451),
                                        current_resolution=(self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        
+        sprite_hit = AnimatedSprite(self.hit_anim_data, current_anim=0,
+                                anim_fps=8)
 
         self.background = pygame.image.load(os.path.join(ASSETS_DIR,"Background","background_new.png")).convert_alpha()
         self.background = pygame.transform.scale(self.background, (self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         self.zombies = []
+        self.active_effects = []   # danh sách các hiệu ứng hit
+
+        self.hammer = load_image(os.path.join(ASSETS_DIR, "UI", "hammer.png"), (100, 100))
+        self.hammer_angle = 0
+        self.hammer_swinging = False
+        self.hammer_swing_time = 0
+
         running = True
         while running:
             dt = clock.tick(self.FPS)/1000.0
@@ -400,7 +432,9 @@ class Game:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
 
                     clicked = False
-
+                    # Swing hammer
+                    self.hammer_swinging = True
+                    self.hammer_swing_time = time.time()
                     for z in self.zombies:
 
                         if not z.hit and z.check_hit(event.pos):
@@ -410,6 +444,10 @@ class Game:
                             self.hit_sound.play()
                             # self.bloods.append(Blood(z.sprite.rect.centerx, z.sprite.rect.centery,
                             #      os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "1", "1_0.png"), lifetime_ms=300))
+                            # Tạo hiệu ứng hit tại chỗ zombie
+                            effect = AnimatedSprite(self.hit_anim_data, current_anim=0, anim_fps=20, 
+                                                    x=z.sprite.rect.centerx-15, y=z.sprite.rect.top)
+                            self.active_effects.append(effect)
                             clicked = True
 
                             break
@@ -428,6 +466,10 @@ class Game:
             # Update zombies
 
             self.zombies = [z for z in self.zombies if z.update(dt)]
+            for effect in self.active_effects[:]:
+                effect.UpdateAnim(dt)
+                if effect.frame_num >= effect.anim_data.frame_info[effect.anim_num].num_frames - 1:
+                    self.active_effects.remove(effect)
 
             # Update blood effects
             # self.bloods = [b for b in self.bloods if b.update()] 
@@ -442,12 +484,17 @@ class Game:
             for z in self.zombies:
 
                 z.draw(self.window)
+            # Vẽ hiệu ứng hit
+            for effect in self.active_effects:
+                effect.draw(self.window)
 
             self.draw_volume_bar()
 
             self.cursor.draw_centered(self.window)
 
             self.draw_hud()
+
+            self.draw_hammer()
 
             pygame.display.flip()
 
