@@ -10,12 +10,23 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 ZOMBIE_SHEET_PATH = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
 HIT_ATTACK_SHEET_PATH = os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "5_100x100px.png")
+GRAVE_SHEET_PATH = os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png")
+CURSOR_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "cursor.png")
+BACKGROUND_PATH = os.path.join(ASSETS_DIR,"Background", "background_new.png")
+HAMMER_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "hammer.png")
+PLAY_BUTTON_PATH = os.path.join(ASSETS_DIR,"Play_button.png")
+SETTINGS_BUTTON_PATH = os.path.join(ASSETS_DIR,"Settings_button.png")
+EXIT_BUTTON_PATH = os.path.join(ASSETS_DIR,"Exit.png")
 
 BASE_WIDTH = 3200
 BASE_HEIGHT = 1792
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
 FPS = 60
+
+base_resolution = (BASE_WIDTH,BASE_HEIGHT)
+window_resolution = (WINDOW_WIDTH,WINDOW_HEIGHT)
+
 pygame.init()
 clock = pygame.time.Clock()
 
@@ -29,7 +40,7 @@ def load_image(path, scale=None):
 class Grave(Sprite):
     def __init__(self, x, y, target_height=80, base_res=(800, 600), curr_res=(1280,720)):
         full_image = pygame.image.load(
-            os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new.png")
+            GRAVE_SHEET_PATH
         ).convert_alpha()
         
         # Cut the upper half (RIP gravestone)
@@ -41,7 +52,7 @@ class Grave(Sprite):
 
 class Cursor(Sprite):
     def __init__(self, x=0, y=0, target_height=100, base_res=(800,600), curr_res=(1280,720)):
-        image = pygame.image.load(os.path.join(ASSETS_DIR, "UI", "cursor.png")).convert_alpha()
+        image = pygame.image.load(CURSOR_SHEET_PATH).convert_alpha()
         super().__init__(image, x, y, target_height, base_resolution=base_res, current_resolution=curr_res)
 
     def draw_centered(self, surface):
@@ -63,7 +74,7 @@ class Button(Sprite):
 class Zombie:
     def __init__(self, x, y, anim_data, lifetime_ms):
         self.sprite = AnimatedSprite(anim_data, anim_fps=8, x=x, y=y, target_height=80, base_resolution=(800,451),
-                                       current_resolution=(WINDOW_WIDTH, WINDOW_HEIGHT))
+                                       current_resolution=window_resolution)
         self.spawn_time = pygame.time.get_ticks()
         self.lifetime = lifetime_ms
         self.hit = False
@@ -115,33 +126,17 @@ class Debugger:
 # ===== Game =====
 class Game:
     def __init__(self):
+        self.window = pygame.display.set_mode(window_resolution)
+        pygame.display.set_caption("Whack-a-zombie")
         self.debugger = Debugger("debug")
-        self.audio = Audio()
+        self.audio = Audio(window_resolution)
         # Game state
         self.highscore = 0
         self.hits = 0
         self.misses = 0
         self.score = 0
-        self.volume = 0.5
 
         # self.bloods = []
-        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        
-
-        pygame.mixer.music.set_volume(self.volume)
-        if self.hit_sound:
-            self.hit_sound.set_volume(self.volume)
-        self.volume_bar = VolumeBar(VOLUME_BAR_SHEET_PATH,1000,60,(1280,720),(WINDOW_WIDTH,WINDOW_HEIGHT)),100,
-        if WINDOW_WIDTH == 1280 and WINDOW_HEIGHT == 720:
-            self.volume_bar = VolumeBar(
-            VOLUME_BAR_SHEET_PATH,
-            x=1000, y=60, levels=10
-        )
-
-        self.dragging_volume = False
-
-        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-        pygame.display.set_caption("Whack-a-zombie")
 
         # Load zombie animation
         sheets = load_sheets([ZOMBIE_SHEET_PATH])
@@ -154,45 +149,46 @@ class Game:
         
 
         # Cursor
-        self.cursor = Cursor(curr_res=(WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.cursor = Cursor(curr_res=window_resolution)
 
         # ===== Graves =====
         self.graves = []
 
-        rows, cols = 3, 3
-        spacing_x, spacing_y = 100, 100   # distance between graves
+        num_graves = 9
+        spacing_x, spacing_y = 50, 50   # minimum distance
         target_height = 70
 
         # Blue area (hard-coded coordinates or from background)
-        # Example: x=250, y=160, w=400, h=300
-        if WINDOW_WIDTH == 800 and WINDOW_HEIGHT == 600:
-            area_rect = pygame.Rect(170, 120, 400, 300)
-        elif WINDOW_WIDTH == 1280 and WINDOW_HEIGHT == 720:
-            area_rect = pygame.Rect(70, 80, 600, 400)
-        elif WINDOW_WIDTH == 1280 and WINDOW_HEIGHT == 800:
-            area_rect = pygame.Rect(50, 100, 600, 400)
-        # Calculate grid size
-        grid_width = (cols - 1) * spacing_x
-        grid_height = (rows - 1) * spacing_y
+        area_rect = pygame.Rect(50, 100, 600, 400)
 
-        # Grid top-left (centered inside blue area)
-        start_x = area_rect.centerx - grid_width // 2
-        start_y = area_rect.centery - grid_height // 2
+        def is_far_enough(x, y, graves, min_dx, min_dy):
+            for g in graves:
+                if abs(x - g.x) < min_dx or abs(y - g.y) < min_dy:
+                    return False
+            return True
 
-        for row in range(rows):
-            for col in range(cols):
-                x = start_x + col * spacing_x
-                y = start_y + row * spacing_y
+        attempts = 0
+        max_attempts = 1000  # safety to avoid infinite loops
+
+        while len(self.graves) < num_graves and attempts < max_attempts:
+            attempts += 1
+            # Random point inside area_rect (relative to base resolution)
+            x = random.randint(area_rect.left, area_rect.right)
+            y = random.randint(area_rect.top, area_rect.bottom)
+
+            if is_far_enough(x, y, self.graves, spacing_x, spacing_y):
                 self.graves.append(
-                    Grave(x, y, target_height=target_height,
-                        curr_res=(WINDOW_WIDTH, WINDOW_HEIGHT))
+                    Grave(
+                        x, y,
+                        target_height=target_height,
+                        base_res=(1280,720),
+                        curr_res=window_resolution
+                    )
                 )
-
           
     # ===== Volume bar =====
     def handle_volume_event(self, event):
         self.volume_bar.handle_event(event)
-        self.volume = self.volume_bar.volume
 
     def draw_volume_bar(self):
         self.volume_bar.draw(self.window)
@@ -236,18 +232,13 @@ class Game:
     def main_menu(self):
         pygame.mouse.set_visible(False)
         clock = pygame.time.Clock()
-        menu_bg = pygame.image.load(os.path.join(ASSETS_DIR,"Background", "background_new.png")).convert_alpha()
-        menu_bg = pygame.transform.scale(menu_bg, (WINDOW_WIDTH, WINDOW_HEIGHT))
-
-        # Load temporarily to get scaled image width
-        start_btn_img = os.path.join(ASSETS_DIR,"Play_button.png")
-        settings_btn_img = os.path.join(ASSETS_DIR,"Settings_button.png")
-        exit_btn_img = os.path.join(ASSETS_DIR,"Exit.png")
+        menu_bg = pygame.image.load(BACKGROUND_PATH).convert_alpha()
+        menu_bg = pygame.transform.scale(menu_bg, window_resolution)
 
         # Initialize buttons
-        start_button = Button(start_btn_img, 0, 250, curr_res=(WINDOW_WIDTH, WINDOW_HEIGHT))
-        settings_button = Button(settings_btn_img, 0, 360, curr_res=(WINDOW_WIDTH, WINDOW_HEIGHT))
-        exit_button = Button(exit_btn_img, 0, 470, curr_res=(WINDOW_WIDTH, WINDOW_HEIGHT))
+        start_button = Button(PLAY_BUTTON_PATH, 0, 250, curr_res=window_resolution)
+        settings_button = Button(SETTINGS_BUTTON_PATH, 0, 360, curr_res=window_resolution)
+        exit_button = Button(EXIT_BUTTON_PATH, 0, 470, curr_res=window_resolution)
 
         # Center x based on scaled image width
         for btn in [start_button, settings_button, exit_button]:
@@ -318,12 +309,12 @@ class Game:
         sprite_hit = AnimatedSprite(self.hit_anim_data, current_anim=0,
                                 anim_fps=8)
 
-        self.background = pygame.image.load(os.path.join(ASSETS_DIR,"Background","background_new.png")).convert_alpha()
-        self.background = pygame.transform.scale(self.background, (WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.background = pygame.image.load(BACKGROUND_PATH).convert_alpha()
+        self.background = pygame.transform.scale(self.background, window_resolution)
         self.zombies = []
         self.active_effects = []   # danh sách các hiệu ứng hit
 
-        self.hammer = load_image(os.path.join(ASSETS_DIR, "UI", "hammer.png"), (100, 100))
+        self.hammer = load_image(HAMMER_SHEET_PATH, (100, 100))
         self.hammer_angle = 0
         self.hammer_swinging = False
         self.hammer_swing_time = 0

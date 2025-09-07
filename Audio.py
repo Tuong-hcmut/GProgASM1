@@ -12,40 +12,41 @@ VOLUME_BAR_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "Charging bars and button
 
 HIT_SOUND_PATH = os.path.join(ASSETS_DIR, "sfx", "SFX hit.mp3")
 MUSIC_PATH = os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3")
+
+BASE_RESOLUTION = (1280,720)
+TARGET_HEIGHT = 120
 # ===== Audio =====
 class Audio:
-    def __init__(self):
+    def __init__(self,current_resolution):
         try:
             pygame.mixer.init()
-            pygame.mixer.music.load(music_path)
+            pygame.mixer.music.load(MUSIC_PATH)
             pygame.mixer.music.play(-1)
         except Exception as e:
             print("Error loading music:", e)
 
         try:
-            self.hit_sound = pygame.mixer.Sound(hit_sound_path)
+            self.hit_sound = pygame.mixer.Sound(HIT_SOUND_PATH)
         except Exception as e:
             print("Error loading hit sound:", e)
             self.hit_sound = None
 
         # Volume bars
         self.music_bar = VolumeBar(
-            sheet_path=volume_bar_sheet,
-            x=800, y=50,  # user-defined positions
-            base_resolution=base_resolution,
+            x=1000, y=60,  # user-defined positions
+            base_resolution=BASE_RESOLUTION,
             current_resolution=current_resolution,
-            target_height=120,
+            target_height=TARGET_HEIGHT,
             sound_obj=pygame.mixer.music
         )
 
         self.hit_bar = None
         if self.hit_sound:
             self.hit_bar = VolumeBar(
-                sheet_path=volume_bar_sheet,
-                x=800, y=120,  # below the music bar
-                base_resolution=base_resolution,
+                x=1000, y=200,  # below the music bar
+                base_resolution=BASE_RESOLUTION,
                 current_resolution=current_resolution,
-                target_height=120,
+                target_height=TARGET_HEIGHT,
                 sound_obj=self.hit_sound
             )
 
@@ -55,9 +56,9 @@ class Audio:
             self.hit_sound.play()
 
 class VolumeBar:
-    def __init__(self, sheet_path, x, y, base_resolution, current_resolution, target_height, sound_obj):
+    def __init__(self, x, y, base_resolution, current_resolution, target_height, sound_obj):
         images, frame_info = from_concat_sheet(
-            load_sheets([sheet_path])[0],
+            load_sheets([VOLUME_BAR_SHEET_PATH])[0],
             48, 32,
             [1,1,1,1,1,1,1,1]
         )
@@ -68,7 +69,7 @@ class VolumeBar:
             anim_fps=0,
             x=x, y=y,
             target_height=target_height,
-            base_resolution=base_resolution,
+            base_resolution=BASE_RESOLUTION,
             current_resolution=current_resolution
         )
 
