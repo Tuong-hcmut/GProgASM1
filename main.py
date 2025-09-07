@@ -13,7 +13,7 @@ HIT_ATTACK_SHEET_PATH = os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "5_100
 GRAVE_SHEET_PATH = os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new_animated.png")
 CURSOR_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "cursor.png")
 BACKGROUND_PATH = os.path.join(ASSETS_DIR,"Background", "background_new.png")
-HAMMER_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "hammer.png")
+HAMMER_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "pixel_hammer.png")
 PLAY_BUTTON_PATH = os.path.join(ASSETS_DIR,"Play_button.png")
 SETTINGS_BUTTON_PATH = os.path.join(ASSETS_DIR,"Settings_button.png")
 EXIT_BUTTON_PATH = os.path.join(ASSETS_DIR,"Exit.png")
@@ -42,7 +42,7 @@ def load_image(path, scale=None):
 # ===== Sprite subclasses =====
 class Grave(AnimatedSprite):
     def __init__(self, x, y, anim_data, target_height=SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
-        super().__init__(anim_data=anim_data,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
+        super().__init__(anim_data=anim_data, anim_fps= 7,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
 
 class Cursor(Sprite):
     def __init__(self, x=0, y=0, target_height= SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
@@ -138,7 +138,7 @@ class Game:
         c, d = from_multiline_sheet(load_sheets([HIT_ATTACK_SHEET_PATH])[0], 100, 100, [6, 6, 6, 6, 6])
         self.hit_anim_data = AnimData(c, d)
         e,f = from_concat_sheet(load_sheets([GRAVE_SHEET_PATH])[0],34,42,[1,7])
-        self.grave_anim_data = AnimData(e,f)        
+        self.grave_anim_data = AnimData(e,f)
 
         # Cursor
         self.cursor = Cursor(curr_res=window_resolution)
@@ -187,15 +187,6 @@ class Game:
     def draw_volume_bar(self):
         self.audio.music_bar.draw(self.window)
         self.audio.hit_bar.draw(self.window)
-    
-    # ===== Spawn zombie =====
-    def spawn_zombie(self):
-
-        grave = random.choice(self.graves)
-
-        lifetime = random.randint(800,1500)
-
-        self.zombies.append(Zombie(grave.x // sx, grave.y // sy, self.zombie_anim_data, lifetime))
 
     # ========= DRAW HUD ==========
 
@@ -308,9 +299,10 @@ class Game:
         self.background = pygame.image.load(BACKGROUND_PATH).convert_alpha()
         self.background = pygame.transform.scale(self.background, window_resolution)
         self.zombies = []
+        self.spawning = []
         self.active_effects = []   # danh sách các hiệu ứng hit
 
-        self.hammer = load_image(HAMMER_SHEET_PATH, (100, 100))
+        self.hammer = load_image(HAMMER_SHEET_PATH, (50, 50))
         self.hammer_angle = 0
         self.hammer_swinging = False
         self.hammer_swing_time = 0
@@ -362,7 +354,9 @@ class Game:
             # Spawn zombie mỗi 1 giây
 
             if spawn_timer >= 1.0:
-                self.spawn_zombie()
+                grave = random.choice(self.graves)
+                self.spawning.append(grave)
+                grave.ChangeAnim(1)
                 spawn_timer = 0
 
             # Update zombies
@@ -379,6 +373,13 @@ class Game:
 
             self.window.blit(self.background,(0,0))
 
+            for grave in self.spawning:
+                grave.UpdateAnim(dt)
+                if grave.frame_num == 6:
+                    grave.ChangeAnim(0)
+                    lifetime = random.randint(800,1500)
+                    self.zombies.append(Zombie(grave.x // sx, grave.y // sy, self.zombie_anim_data, lifetime))
+                    self.spawning.remove(grave)
             for grave in self.graves:
 
                 grave.draw(self.window)
