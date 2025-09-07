@@ -9,7 +9,7 @@ from Audio import *
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "Assets")
 ZOMBIE_SHEET_PATH = os.path.join(ASSETS_DIR, "Zombie sprites", "Zombie 1 (32x32).png")
-HIT_ATTACK_SHEET_PATH = os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "5_100x100px.png")
+HIT_EFFECT_SHEET_PATH = os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "5_100x100px.png")
 GRAVE_SHEET_PATH = os.path.join(ASSETS_DIR, "Background", "Decoration", "grave_new_animated.png")
 CURSOR_SHEET_PATH = os.path.join(ASSETS_DIR, "UI", "cursor.png")
 BACKGROUND_PATH = os.path.join(ASSETS_DIR,"Background", "background_new.png")
@@ -44,13 +44,21 @@ class Grave(AnimatedSprite):
     def __init__(self, x, y, anim_data, target_height=SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
         super().__init__(anim_data=anim_data, anim_fps= 7,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
 
+class HitEffect(AnimatedSprite):
+    def __init__(self, x, y, anim_data, target_height=SPRITE_HEIGHT*10, base_res=base_resolution, curr_res=window_resolution):
+        super().__init__(anim_data=anim_data, anim_fps= 10,x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
+
 class Hammer:
-    def __init__(self, image_path, size=(100,100)):
-        self.image = load_image(image_path, size)
+    def __init__(self, x=0, y=0, target_height= SPRITE_HEIGHT, base_res=base_resolution, curr_res=window_resolution):
+        print("start hammer init")
+        self.sprite = Sprite(image=pygame.image.load(HAMMER_SHEET_PATH).convert_alpha(), x=x, y=y, target_height=target_height, base_resolution=base_res, current_resolution=curr_res)
+        print("bruh")
+        self.image = self.sprite.image
         self.angle = 0
         self.swinging = False
         self.swing_time = 0.0
         self.swing_duration = 0.15  # seconds
+        print("finish init")
 
     def swing(self):
         self.swinging = True
@@ -164,8 +172,8 @@ class Game:
         # Load zombie animation
         a, b = from_multiline_sheet(load_sheets([ZOMBIE_SHEET_PATH])[0], 32, 32, [8,7,8,13,9,8])
         self.zombie_anim_data = AnimData(a, b)
-        c, d = from_multiline_sheet(load_sheets([HIT_ATTACK_SHEET_PATH])[0], 100, 100, [6, 6, 6, 6, 6])
-        self.hit_anim_data = AnimData(c, d)
+        c, d = from_wrapped_sheet(load_sheets([HIT_EFFECT_SHEET_PATH])[0], 100, 100, [30])
+        self.hit_effect_anim_data = AnimData(c, d)
         e,f = from_concat_sheet(load_sheets([GRAVE_SHEET_PATH])[0],34,42,[1,7])
         self.grave_anim_data = AnimData(e,f)
 
@@ -309,16 +317,13 @@ class Game:
         print("start")
         self.score = 0
         spawn_timer = 0
-        
-        sprite_hit = AnimatedSprite(self.hit_anim_data, current_anim=0,
-                                anim_fps=8)
 
         self.background = pygame.image.load(BACKGROUND_PATH).convert_alpha()
         self.background = pygame.transform.scale(self.background, window_resolution)
         self.zombies = []
         self.spawning = []
         self.active_effects = []   # danh sách các hiệu ứng hit
-        self.hammer = Hammer(HAMMER_SHEET_PATH, (100, 100))
+        self.hammer = Hammer()
 
         print("preloop")
         running = True
@@ -351,8 +356,12 @@ class Game:
                             # self.bloods.append(Blood(z.sprite.rect.centerx, z.sprite.rect.centery,
                             #      os.path.join(ASSETS_DIR, "vfx", "Hit effect VFX", "1", "1_0.png"), lifetime_ms=300))
                             # Tạo hiệu ứng hit tại chỗ zombie
-                            effect = AnimatedSprite(self.hit_anim_data, current_anim=0, anim_fps=20, 
-                                                    x=z.sprite.rect.centerx-15, y=z.sprite.rect.top)
+                            effect = HitEffect((z.sprite.rect.centerx)//sx - TARGET_HEIGHT*3/2, (z.sprite.rect.bottom)//sy  - TARGET_HEIGHT*3/2,self.hit_effect_anim_data,TARGET_HEIGHT*3)
+                            print("sx sy: ",sx,sy)
+                            print("zom x y: ",z.sprite.rect.centerx,z.sprite.rect.centery)
+                            print("offset: ",-0.5* TARGET_HEIGHT*3,0.5* TARGET_HEIGHT*3)
+                            print("vfx x y: ",effect.x,effect.y)
+                            print(" ")
                             self.active_effects.append(effect)
                             clicked = True
 
@@ -376,7 +385,7 @@ class Game:
             self.zombies = [z for z in self.zombies if z.update(dt)]
             for effect in self.active_effects[:]:
                 effect.UpdateAnim(dt)
-                if effect.frame_num >= effect.anim_data.frame_info[effect.anim_num].num_frames - 1:
+                if effect.frame_num >= 28:
                     self.active_effects.remove(effect)
 
             # Update blood effects
@@ -387,7 +396,7 @@ class Game:
 
             for grave in self.spawning:
                 grave.UpdateAnim(dt)
-                if grave.frame_num == 6:
+                if grave.frame_num >= 5:
                     grave.ChangeAnim(0)
                     lifetime = random.randint(800,1500)
                     self.zombies.append(Zombie(grave.x // sx, grave.y // sy, self.zombie_anim_data, lifetime))

@@ -14,7 +14,7 @@ HIT_SOUND_PATH = os.path.join(ASSETS_DIR, "sfx", "SFX hit.mp3")
 MUSIC_PATH = os.path.join(ASSETS_DIR, "Background", "Background music (INGAME).mp3")
 
 BASE_RESOLUTION = (1280,720)
-TARGET_HEIGHT = 120
+TARGET_HEIGHT = 70
 # ===== Audio =====
 class Audio:
     def __init__(self,current_resolution):
