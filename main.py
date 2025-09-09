@@ -24,6 +24,7 @@ WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
 SPRITE_HEIGHT = 120
 FPS = 60
+NUM_GRAVES = 9
 
 base_resolution = (BASE_WIDTH,BASE_HEIGHT)
 window_resolution = (WINDOW_WIDTH,WINDOW_HEIGHT)
@@ -129,8 +130,6 @@ class Zombie:
         if self.sprite.rect.collidepoint(pos) and not self.hit:
             self.hit = True
             self.sprite.ChangeAnim(3)
-            curr_anim = self.sprite.anim_num
-            curr_fram = self.sprite.frame_num
             return True
         return False
 # class Blood:
@@ -189,8 +188,7 @@ class Game:
         # ===== Graves =====
         self.graves = []
 
-        num_graves = 9
-        spacing_x, spacing_y = SPRITE_HEIGHT*0.5*sx, SPRITE_HEIGHT*sy   # minimum distance
+        spacing_x, spacing_y = SPRITE_HEIGHT*0.81*sx, SPRITE_HEIGHT*sy   # minimum distance
 
         # Blue area (hard-coded coordinates or from background)
         area_rect = pygame.Rect(1000*sx, 600*sy, 1100*sx, 600*sy)
@@ -203,7 +201,7 @@ class Game:
         attempts = 0
         max_attempts = 1000  # safety to avoid infinite loops
 
-        while len(self.graves) < num_graves and attempts < max_attempts:
+        while len(self.graves) < NUM_GRAVES and attempts < max_attempts:
             attempts += 1
             # Random point inside area_rect (relative to base resolution)
             x = random.randint(area_rect.left, area_rect.right)
@@ -381,12 +379,19 @@ class Game:
             if spawn_timer >= 1.0:
                 grave = random.choice(self.graves)
                 self.spawning.append(grave)
+                self.graves.remove(grave)
                 grave.ChangeAnim(1)
                 spawn_timer = 0
 
             # Update zombies
-
-            self.zombies = [z for z in self.zombies if z.update(dt)]
+            alive = []
+            for z in self.zombies:
+                if z.update(dt):
+                    alive.append(z)
+                else:
+                    if z.sprite.anim_num == 5:
+                        self.misses += 1
+            self.zombies = alive
             for effect in self.active_effects[:]:
                 effect.UpdateAnim(dt)
                 if effect.frame_num >= 28:
@@ -404,9 +409,12 @@ class Game:
                     grave.ChangeAnim(0)
                     lifetime = random.randint(800,1500)
                     self.zombies.append(Zombie(grave.x // sx, grave.y // sy, self.zombie_anim_data, lifetime))
+                    self.graves.append(grave)
                     self.spawning.remove(grave)
-            for grave in self.graves:
 
+            for grave in self.graves:
+                grave.draw(self.window)
+            for grave in self.spawning:
                 grave.draw(self.window)
 
             for z in self.zombies:
