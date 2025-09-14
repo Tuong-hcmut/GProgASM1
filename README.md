@@ -49,3 +49,34 @@ NUM_GRAVES    = <number of graves>
 - Dying zombies, whether by being killed by the player or otherwise, do not count towards "hits" and will count as "misses" when hit, failing to kill zombies will also count as "miss".
 
 - Have fun, and paint the floor red!!! (for approximately 30 frames :< )
+
+## Credit
+- Background music: Plants vs Zombies "LoonBloon"
+Original author: Electronic Arts, PopCap Games
+Source: https://downloads.khinsider.com/game-soundtracks/album/plants-vs.-zombies
+
+- Hit sfx: Plants vs Zombies "Hammer Strike"
+Original author: Electronic Arts, PopCap Games
+Source: https://downloads.khinsider.com/game-soundtracks/album/plants-vs.-zombies-2009-gamerip-pc-ios-x360-ps3-ds-android-mobile-psvita-xbox-one-ps4-switch
+
+- Hit vfx: "GIF Free Pixel Effects Pack #5 - Blood Effects"
+Original author: XYezawr
+Source: https://xyezawr.itch.io/gif-free-pixel-effects-pack-5-blood-effects
+
+- Background assets: "Rogue Fantasy Catacomb" title set.
+Original author: Szadi art.
+Source: https://szadiart.itch.io/rogue-fantasy-catacombs
+
+- Zombie sprite: "Zombie - simple, becomes projectile"
+Original author: IronnButterfly
+Source: https://ironnbutterfly.itch.io/zombie-sprite
+
+- Main User Interface assets: "UI User Interface Pack - Horror"
+Original author: ToffeeCraft
+Source: https://toffeecraft.itch.io/ui-user-interface-pack-horror
+
+- Other User Interface assets: "Pixel Hammer"
+Original author: szak
+Source: https://en.ac-illust.com/clip-art/26388255/pixel-hammer
+
+
